@@ -16,10 +16,11 @@ const stateStyles: Record<string, { bg: string; border: string; text: string; do
 }
 
 const highlightStyles: Record<string, { bg: string; border: string; ring: string }> = {
-  goal:     { bg: 'bg-pink-50',    border: 'border-pink-400',  ring: 'ring-2 ring-pink-300 ring-offset-1' },
-  nextStep: { bg: 'bg-blue-50',    border: 'border-blue-400',  ring: 'ring-2 ring-blue-300 ring-offset-1' },
-  blocker:  { bg: 'bg-red-50',     border: 'border-red-400',   ring: 'ring-2 ring-red-300 ring-offset-1'  },
-  path:     { bg: 'bg-violet-50',  border: 'border-violet-300', ring: '' },
+  goal:           { bg: 'bg-pink-50',    border: 'border-pink-400',   ring: 'ring-2 ring-pink-300 ring-offset-1' },
+  nextStep:       { bg: 'bg-blue-50',    border: 'border-blue-400',   ring: 'ring-2 ring-blue-300 ring-offset-1' },
+  blocker:        { bg: 'bg-red-50',     border: 'border-red-400',    ring: 'ring-2 ring-red-300 ring-offset-1'  },
+  path:           { bg: 'bg-violet-50',  border: 'border-violet-300', ring: '' },
+  nextBestAction: { bg: 'bg-orange-50',  border: 'border-orange-400', ring: 'ring-4 ring-orange-300 ring-offset-2 animate-pulse' },
 }
 
 export const GraphQuestNode = memo(({ data }: NodeProps<Node<GraphNodeData>>) => {

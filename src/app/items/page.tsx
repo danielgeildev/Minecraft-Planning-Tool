@@ -7,6 +7,7 @@ import { useQuestStore } from '@/store/useQuestStore'
 import { ItemCard } from '@/components/items/ItemCard'
 import { ItemDetail } from '@/components/items/ItemDetail'
 import { ItemForm } from '@/components/items/ItemForm'
+import { GoalCreationModal } from '@/components/goals/GoalCreationModal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UndoToast } from '@/components/ui/UndoToast'
 import { Button } from '@/components/ui/Button'
@@ -28,6 +29,7 @@ export default function ItemsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [showUndo, setShowUndo] = useState(false)
   const [search, setSearch] = useState('')
+  const [goalNode, setGoalNode] = useState<AnyNode | null>(null)
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   const [filterMod, setFilterMod] = useState('all')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
@@ -206,6 +208,7 @@ export default function ItemsPage() {
                   onClick={(item) =>
                     setSelectedItem((prev) => (prev?.id === item.id ? null : item))
                   }
+                  onGoalCreate={setGoalNode}
                 />
               ))}
             </div>
@@ -257,9 +260,18 @@ export default function ItemsPage() {
             onLinkedItemClick={(node) => {
               if (node.type === 'item') setSelectedItem(node)
             }}
+            onGoalCreate={setGoalNode}
           />
         </div>
       )}
+
+      {/* Goal creation modal */}
+      <GoalCreationModal
+        open={goalNode !== null}
+        onClose={() => setGoalNode(null)}
+        node={goalNode}
+        allNodes={allNodes}
+      />
 
       {/* Form */}
       <ItemForm

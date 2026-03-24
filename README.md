@@ -8,9 +8,16 @@ Eine persönliche Web-App zum Planen und Tracken von Quests, Gebäuden und Items
 
 ### 🎯 Ziel-System (Goal Planner)
 - Jedes Item oder jede Quest kann als **Ziel** gesetzt werden
+- **Goal Creation Flow**: Beim Setzen eines Ziels öffnet sich ein Planungs-Modal:
+  - Optionale **persönliche Notiz** (Warum ist das mein Ziel?)
+  - **Unterziele (Subgoals)** direkt aus den direkten Abhängigkeiten auswählen
+  - Bereits getrackte Nodes werden als gesetzt angezeigt (nicht doppelt)
+- **Hierarchische Ziele**: Unterziele haben `parentGoalId` und erscheinen eingerückt unter dem Hauptziel
 - Mehrere gleichzeitige Ziele werden unterstützt
 - Pro Ziel:
   - **Fortschrittsbalken** mit done/available/locked Aufschlüsselung
+  - **Notiz** (falls gesetzt) sichtbar auf der Ziel-Karte
+  - **Unterziele** mit eigenem Mini-Fortschrittsbalken
   - **"Das solltest du jetzt tun"** — nächste entsperrte Schritte (blau)
   - **Blockiert durch** — noch gesperrte Vorbedingungen (rot)
   - **Ressourcenkalkulation** — rekursive Berechnung aller benötigten Materialien mit Mengen-Multiplikatoren
@@ -47,6 +54,8 @@ Eine persönliche Web-App zum Planen und Tracken von Quests, Gebäuden und Items
 - Gebäude mit Name, Ort, Stil, Status planen
 - Anforderungslisten pro Gebäude
 - Notizen & Inspo-Bereich
+- **Screenshot-Upload**: Drag & Drop oder Klick — Bilder werden als Base64 im localStorage gespeichert
+- Thumbnail-Leiste auf der Gebäude-Karte; Klick öffnet **Lightbox** mit Navigation (←/→) und Vollbild-Ansicht
 - Status-Schnellwechsel direkt auf der Karte
 
 ### 🏠 Dashboard
@@ -111,8 +120,9 @@ src/
 │   │   ├── GraphView.tsx   # ReactFlow Canvas
 │   │   ├── GraphQuestNode.tsx  # Custom Node: Quest (mit Highlight-Styles)
 │   │   └── GraphItemNode.tsx   # Custom Node: Item (mit Highlight-Styles)
+│   ├── goals/              # GoalCreationModal (Planungs-Flow)
 │   ├── quests/             # QuestCard, QuestForm
-│   ├── buildings/          # BuildingCard, BuildingForm
+│   ├── buildings/          # BuildingCard (Lightbox), BuildingForm (Upload)
 │   └── items/              # ItemCard, ItemForm, ItemDetail
 │
 ├── lib/
@@ -197,6 +207,8 @@ interface Goal {
   id: string
   targetNodeId: string   // ID eines QuestNode oder ItemNode
   createdAt: string
+  note?: string          // persönliche Notiz/Begründung für das Ziel
+  parentGoalId?: string  // gesetzt wenn Unterziel eines anderen Ziels
 }
 ```
 
@@ -221,7 +233,6 @@ Die Ressourcenberechnung traversiert den Dependency-Graphen rekursiv:
 
 ## Bekannte Einschränkungen
 
-- Keine Bild-Uploads (Inspo-Bilder)
 - Keine Export-Funktion (JSON/CSV)
 - Kein Dark Mode
 - Keine echten Mod-API-Daten — nur Mock-Daten als Startpunkt

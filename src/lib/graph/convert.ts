@@ -2,7 +2,7 @@ import type { Node, Edge } from '@xyflow/react'
 import type { AnyNode } from '@/types'
 import { getNodeState, type NodeState } from '@/lib/progression'
 
-export type GraphHighlight = 'goal' | 'nextStep' | 'blocker' | 'path' | null
+export type GraphHighlight = 'goal' | 'nextStep' | 'blocker' | 'path' | 'nextBestAction' | null
 
 export interface GraphNodeData {
   node: AnyNode
@@ -25,10 +25,11 @@ export function convertNodesToGraph(
   allNodes: AnyNode[],
   visibleNodes: AnyNode[],
   highlights?: {
-    goalIds:     Set<string>
-    nextStepIds: Set<string>
-    blockerIds:  Set<string>
-    pathIds:     Set<string>
+    goalIds:            Set<string>
+    nextStepIds:        Set<string>
+    blockerIds:         Set<string>
+    pathIds:            Set<string>
+    nextBestActionIds?: Set<string>
   },
 ): {
   nodes: Node<GraphNodeData>[]
@@ -39,10 +40,11 @@ export function convertNodesToGraph(
   const nodes: Node<GraphNodeData>[] = visibleNodes.map(node => {
     let highlight: GraphHighlight = null
     if (highlights) {
-      if (highlights.goalIds.has(node.id))     highlight = 'goal'
-      else if (highlights.nextStepIds.has(node.id)) highlight = 'nextStep'
-      else if (highlights.blockerIds.has(node.id))  highlight = 'blocker'
-      else if (highlights.pathIds.has(node.id))     highlight = 'path'
+      if (highlights.nextBestActionIds?.has(node.id)) highlight = 'nextBestAction'
+      else if (highlights.goalIds.has(node.id))       highlight = 'goal'
+      else if (highlights.nextStepIds.has(node.id))   highlight = 'nextStep'
+      else if (highlights.blockerIds.has(node.id))    highlight = 'blocker'
+      else if (highlights.pathIds.has(node.id))       highlight = 'path'
     }
 
     return {

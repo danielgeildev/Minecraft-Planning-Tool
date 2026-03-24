@@ -21,9 +21,10 @@ interface ItemDetailProps {
   onEdit: (item: ItemNode) => void
   onStatusChange: (id: string, status: ItemStatus) => void
   onLinkedItemClick: (node: AnyNode) => void
+  onGoalCreate?: (item: ItemNode) => void
 }
 
-export function ItemDetail({ item, allNodes, onClose, onEdit, onStatusChange, onLinkedItemClick }: ItemDetailProps) {
+export function ItemDetail({ item, allNodes, onClose, onEdit, onStatusChange, onLinkedItemClick, onGoalCreate }: ItemDetailProps) {
   const { isGoal, toggleGoal } = useGoalStore()
 
   if (!item) return null
@@ -76,7 +77,7 @@ export function ItemDetail({ item, allNodes, onClose, onEdit, onStatusChange, on
             → {statusConfig[nextStatus].label}
           </button>
           <button
-            onClick={() => toggleGoal(item.id)}
+            onClick={() => goal ? toggleGoal(item.id) : (onGoalCreate ? onGoalCreate(item) : toggleGoal(item.id))}
             className={`ml-auto flex items-center gap-1 text-xs font-medium rounded-lg px-2.5 py-1 transition-colors ${
               goal
                 ? 'bg-pink-100 text-pink-600 hover:bg-pink-200'
@@ -84,7 +85,7 @@ export function ItemDetail({ item, allNodes, onClose, onEdit, onStatusChange, on
             }`}
           >
             <Target size={12} />
-            {goal ? 'Ist Ziel ✓' : 'Als Ziel setzen'}
+            {goal ? 'Ist Ziel ✓' : 'Ziel planen…'}
           </button>
         </div>
 

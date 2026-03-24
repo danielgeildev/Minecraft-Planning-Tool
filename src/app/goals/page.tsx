@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
-import { Trash2, ExternalLink } from 'lucide-react'
+import { Trash2, ExternalLink, ChevronRight } from 'lucide-react'
 import { useGoalStore }    from '@/store/useGoalStore'
 import { useQuestStore }   from '@/store/useQuestStore'
 import { useItemStore }    from '@/store/useItemStore'
@@ -19,7 +19,8 @@ import {
 import { getNodeTitle, isNodeDone, type AnyNode } from '@/types'
 
 export default function GoalsPage() {
-  const { goals, removeGoal }  = useGoalStore()
+  const { getRootGoals, getSubgoals, removeGoal } = useGoalStore()
+  const goals = getRootGoals()
   const { quests }             = useQuestStore()
   const { items }              = useItemStore()
 
@@ -69,6 +70,9 @@ export default function GoalsPage() {
           const blockers  = getBlockingNodesForGoal(goal.targetNodeId, allNodes)
           const resources = calculateTotalResources(goal.targetNodeId, allNodes)
           const isDone    = isNodeDone(targetNode)
+          const subgoals  = getSubgoals(goal.id)
+            .map(sg => ({ sg, node: allNodes.find(n => n.id === sg.targetNodeId) }))
+            .filter((x): x is { sg: typeof x.sg; node: typeof allNodes[0] } => !!x.node)
 
           return (
             <div key={goal.id} className="bg-white rounded-2xl border border-rose-100 shadow-sm overflow-hidden">
@@ -114,6 +118,56 @@ export default function GoalsPage() {
               </div>
 
               <div className="px-5 py-4 flex flex-col gap-5">
+
+                {/* Personal note */}
+                {goal.note && (
+                  <div className="rounded-xl bg-pink-50 border border-pink-100 px-3 py-2">
+                    <p className="text-xs text-pink-500 font-medium mb-0.5">💭 Notiz</p>
+                    <p className="text-sm text-gray-700">{goal.note}</p>
+                  </div>
+                )}
+
+                {/* Subgoals */}
+                {subgoals.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      🎯 Unterziele ({subgoals.length})
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      {subgoals.map(({ sg, node }) => {
+                        const subProgress = getGoalProgress(sg.targetNodeId, allNodes)
+                        const subDone     = isNodeDone(node)
+                        return (
+                          <div
+                            key={sg.id}
+                            className={`rounded-xl border px-3 py-2 ${subDone ? 'bg-emerald-50 border-emerald-100' : 'bg-white border-rose-100'}`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <ChevronRight size={12} className="text-pink-400 flex-shrink-0" />
+                              <span className="text-xs font-medium text-gray-700 flex-1 truncate">
+                                {getNodeTitle(node)}
+                              </span>
+                              <span className="text-xs font-bold text-pink-500">{subProgress.percent}%</span>
+                              <button
+                                onClick={() => removeGoal(sg.id)}
+                                className="text-gray-300 hover:text-red-400 transition-colors ml-1"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            </div>
+                            <div className="h-1 rounded-full bg-rose-100">
+                              <div
+                                className={`h-full rounded-full transition-all ${subDone ? 'bg-emerald-400' : 'bg-pink-300'}`}
+                                style={{ width: `${subProgress.percent}%` }}
+                              />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Done! */}
                 {isDone && (
                   <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-center">

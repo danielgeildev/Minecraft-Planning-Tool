@@ -6,6 +6,7 @@ import { useQuestStore } from '@/store/useQuestStore'
 import { useItemStore } from '@/store/useItemStore'
 import { QuestCard } from '@/components/quests/QuestCard'
 import { QuestForm } from '@/components/quests/QuestForm'
+import { GoalCreationModal } from '@/components/goals/GoalCreationModal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UndoToast } from '@/components/ui/UndoToast'
 import { Button } from '@/components/ui/Button'
@@ -31,6 +32,7 @@ export default function QuestsPage() {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   const [filterPriority, setFilterPriority] = useState<FilterPriority>('all')
   const [showOnlyRoots, setShowOnlyRoots] = useState(false)
+  const [goalNode, setGoalNode] = useState<AnyNode | null>(null)
 
   const filtered = useMemo(() => {
     return quests.filter((q) => {
@@ -189,10 +191,19 @@ export default function QuestsPage() {
               onEdit={handleEdit}
               onDeleteRequest={setDeleteId}
               onStatusChange={(id, status) => updateQuest(id, { status })}
+              onGoalCreate={setGoalNode}
             />
           ))}
         </div>
       )}
+
+      {/* Goal creation modal */}
+      <GoalCreationModal
+        open={goalNode !== null}
+        onClose={() => setGoalNode(null)}
+        node={goalNode}
+        allNodes={allNodes}
+      />
 
       {/* Form modal */}
       <QuestForm

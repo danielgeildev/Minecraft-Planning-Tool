@@ -27,11 +27,12 @@ interface QuestCardProps {
   onEdit:          (quest: QuestNode) => void
   onDeleteRequest: (id: string) => void
   onStatusChange:  (id: string, status: QuestStatus) => void
+  onGoalCreate?:   (quest: QuestNode) => void
 }
 
 export function QuestCard({
   quest, blockedDeps, childCount, isUnlocked,
-  onEdit, onDeleteRequest, onStatusChange,
+  onEdit, onDeleteRequest, onStatusChange, onGoalCreate,
 }: QuestCardProps) {
   const { isGoal, toggleGoal } = useGoalStore()
   const status   = statusConfig[quest.status]
@@ -106,9 +107,9 @@ export function QuestCard({
         {/* Actions */}
         <div className="flex gap-1 flex-shrink-0">
           <button
-            onClick={() => toggleGoal(quest.id)}
-            className={`p-1.5 rounded-lg transition-colors ${goal ? 'text-pink-400' : 'text-gray-300 hover:text-pink-400'}`}
-            title={goal ? 'Ziel entfernen' : 'Als Ziel setzen'}
+            onClick={() => goal ? toggleGoal(quest.id) : (onGoalCreate ? onGoalCreate(quest) : toggleGoal(quest.id))}
+            className={`p-1.5 rounded-lg transition-colors ${goal ? 'bg-pink-50 text-pink-400' : 'text-gray-300 hover:text-pink-400'}`}
+            title={goal ? 'Ziel entfernen' : 'Ziel planen…'}
           >
             <Target size={13} />
           </button>

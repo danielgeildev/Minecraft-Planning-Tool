@@ -6,6 +6,8 @@ export interface Dependency {
   amount?: number   // crafting: how many of targetId are needed to make 1 of this
 }
 
+export type EffortLevel = 'low' | 'medium' | 'high'
+
 // ─── Quest ────────────────────────────────────────────────────────────────────
 
 export type QuestStatus   = 'open' | 'in-progress' | 'done'
@@ -24,6 +26,8 @@ export interface QuestNode {
   category: QuestCategory
   parentId: string | null
   dependencies: Dependency[]
+  effort?: EffortLevel
+  timeEstimate?: number   // minutes
   notes: string
   createdAt: string
   updatedAt: string
@@ -41,11 +45,19 @@ export interface ItemNode {
   status: ItemStatus
   reason: string
   purpose: string
-  // No more free-text ingredients — crafting is expressed via dependencies with amount
   dependencies: Dependency[]
+  effort?: EffortLevel
+  timeEstimate?: number   // minutes
   notes: string
   createdAt: string
   updatedAt: string
+}
+
+// ─── Inventory ────────────────────────────────────────────────────────────────
+
+export interface InventoryItem {
+  nodeId: string
+  amount: number
 }
 
 export type AnyNode = QuestNode | ItemNode
@@ -56,6 +68,8 @@ export interface Goal {
   id: string
   targetNodeId: string
   createdAt: string
+  note?: string           // personal reason/context for this goal
+  parentGoalId?: string   // set when this is a subgoal of another goal
 }
 
 // ─── Building (not in graph) ──────────────────────────────────────────────────
