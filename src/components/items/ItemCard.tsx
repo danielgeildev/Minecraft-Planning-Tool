@@ -52,12 +52,23 @@ export function ItemCard({ item, onEdit, onDeleteRequest, onStatusChange, onClic
             >
               {item.name}
             </h3>
-            {goal && <Target size={11} className="text-pink-400 flex-shrink-0" />}
           </div>
           <p className="text-xs text-pink-400 font-medium mt-0.5 ml-7">{item.mod}</p>
         </div>
 
-        <div className="flex gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div className="flex gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => goal ? toggleGoal(item.id) : (onGoalCreate ? onGoalCreate(item) : toggleGoal(item.id))}
+            title={goal ? 'Ziel entfernen' : 'Ziel setzen…'}
+            className={`
+              p-1.5 rounded-lg transition-all duration-150 min-w-[28px] min-h-[28px] flex items-center justify-center
+              ${goal
+                ? 'bg-pink-100 text-pink-500 ring-1 ring-pink-300 hover:bg-pink-200'
+                : 'text-gray-300 hover:bg-pink-50 hover:text-pink-400 active:bg-pink-100'}
+            `}
+          >
+            <Target size={14} strokeWidth={goal ? 2.5 : 1.5} />
+          </button>
           <Button variant="ghost" size="sm" onClick={() => onEdit(item)} className="!p-1.5">
             <Pencil size={13} />
           </Button>
@@ -85,19 +96,10 @@ export function ItemCard({ item, onEdit, onDeleteRequest, onStatusChange, onClic
 
       {/* Meta */}
       {(craftCount > 0 || depCount > 0) && (
-        <div className="mt-2 flex items-center justify-between">
-          <div className="text-xs text-gray-400">
-            {craftCount > 0 && `🧪 ${craftCount} Zutat${craftCount > 1 ? 'en' : ''}`}
-            {craftCount > 0 && depCount > craftCount && ' · '}
-            {depCount > craftCount && `⛓️ ${depCount - craftCount} weitere Dep${depCount - craftCount > 1 ? 's' : ''}`}
-          </div>
-          <button
-            onClick={e => { e.stopPropagation(); goal ? toggleGoal(item.id) : (onGoalCreate ? onGoalCreate(item) : toggleGoal(item.id)) }}
-            className={`text-xs transition-colors ${goal ? 'bg-pink-50 text-pink-400 rounded-md p-0.5' : 'text-gray-300 hover:text-pink-400'}`}
-            title={goal ? 'Ziel entfernen' : 'Ziel planen…'}
-          >
-            <Target size={12} />
-          </button>
+        <div className="mt-2 text-xs text-gray-400">
+          {craftCount > 0 && `🧪 ${craftCount} Zutat${craftCount > 1 ? 'en' : ''}`}
+          {craftCount > 0 && depCount > craftCount && ' · '}
+          {depCount > craftCount && `⛓️ ${depCount - craftCount} weitere Dep${depCount - craftCount > 1 ? 's' : ''}`}
         </div>
       )}
     </div>

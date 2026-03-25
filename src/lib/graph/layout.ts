@@ -1,9 +1,9 @@
 import type { Node, Edge } from '@xyflow/react'
 
 const NODE_W = 220
-const NODE_H = 90
-const H_GAP  = 110
-const V_GAP  = 40
+const NODE_H = 100
+const H_GAP  = 180
+const V_GAP  = 70
 
 /**
  * Simple DAG layout using longest-path depth assignment.

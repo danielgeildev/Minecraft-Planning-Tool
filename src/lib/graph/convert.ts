@@ -91,24 +91,33 @@ export function convertNodesToGraph(
         }
       }
 
+      const edgeColor = isOnPath ? '#ec4899' : depColor
+      const isRelated = dep.type === 'related'
+      const isRequires = dep.type === 'requires'
+
       edges.push({
         id:       `${dep.targetId}→${node.id}:${dep.type}`,
         source:   dep.targetId,
         target:   node.id,
-        type:     'smoothstep',
-        animated: dep.type === 'requires' && !isDone,
+        type:     isRelated ? 'straight' : 'smoothstep',
+        animated: isRequires && !isDone && !isOnPath,
         label:    edgeLabel,
         labelStyle: { fontSize: 10, fill: edgeLabelColor, fontWeight: 600 },
+        labelBgStyle: { fill: 'white', fillOpacity: 0.85 },
+        labelBgPadding: [3, 4] as [number, number],
+        labelBgBorderRadius: 3,
+        zIndex:   isOnPath ? 10 : isRequires ? 5 : 1,
         style: {
-          stroke:          isOnPath ? '#ec4899' : depColor,
-          strokeWidth:     isOnPath ? 3 : dep.type === 'requires' ? 2 : 1,
-          strokeDasharray: dep.type === 'related' ? '4 3' : undefined,
+          stroke:          edgeColor,
+          strokeWidth:     isOnPath ? 3 : isRequires ? 2 : 1.5,
+          strokeDasharray: isRelated ? '5 4' : undefined,
+          opacity:         isRelated ? 0.55 : 1,
         },
         markerEnd: {
           type:   'arrowclosed',
-          color:  isOnPath ? '#ec4899' : depColor,
-          width:  16,
-          height: 16,
+          color:  edgeColor,
+          width:  isOnPath ? 18 : 14,
+          height: isOnPath ? 18 : 14,
         },
       })
     })
