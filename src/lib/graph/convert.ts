@@ -91,27 +91,29 @@ export function convertNodesToGraph(
         }
       }
 
-      const edgeColor = isOnPath ? '#ec4899' : depColor
-      const isRelated = dep.type === 'related'
+      const edgeColor  = isOnPath ? '#ec4899' : depColor
+      const isRelated  = dep.type === 'related'
       const isRequires = dep.type === 'requires'
 
       edges.push({
-        id:       `${dep.targetId}→${node.id}:${dep.type}`,
-        source:   dep.targetId,
-        target:   node.id,
-        type:     isRelated ? 'straight' : 'smoothstep',
+        id:     `${dep.targetId}→${node.id}:${dep.type}`,
+        source: dep.targetId,
+        target: node.id,
+        type:   'smoothstep',   // consistent for all types — smooth orthogonal bends
         animated: isRequires && !isDone && !isOnPath,
         label:    edgeLabel,
-        labelStyle: { fontSize: 10, fill: edgeLabelColor, fontWeight: 600 },
-        labelBgStyle: { fill: 'white', fillOpacity: 0.85 },
-        labelBgPadding: [3, 4] as [number, number],
+        labelStyle:        { fontSize: 10, fill: edgeLabelColor, fontWeight: 600 },
+        labelBgStyle:      { fill: 'white', fillOpacity: 0.9 },
+        labelBgPadding:    [3, 4] as [number, number],
         labelBgBorderRadius: 3,
-        zIndex:   isOnPath ? 10 : isRequires ? 5 : 1,
+        // Layering: goal-path on top, requires in middle, related at bottom
+        zIndex: isOnPath ? 20 : isRequires ? 10 : 2,
         style: {
           stroke:          edgeColor,
           strokeWidth:     isOnPath ? 3 : isRequires ? 2 : 1.5,
           strokeDasharray: isRelated ? '5 4' : undefined,
-          opacity:         isRelated ? 0.55 : 1,
+          // De-emphasise related edges so structural requires/unlocks stand out
+          opacity:         isRelated ? 0.45 : 1,
         },
         markerEnd: {
           type:   'arrowclosed',
