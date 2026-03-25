@@ -17,14 +17,16 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
-import { GraphQuestNode } from './GraphQuestNode'
-import { GraphItemNode }  from './GraphItemNode'
+import { GraphQuestNode }    from './GraphQuestNode'
+import { GraphItemNode }     from './GraphItemNode'
+import { GraphBuildingNode } from './GraphBuildingNode'
 import type { GraphNodeData } from '@/lib/graph/convert'
 import type { AnyNode } from '@/types'
 
 const nodeTypes: NodeTypes = {
-  questNode: GraphQuestNode as unknown as ComponentType<NodeProps>,
-  itemNode:  GraphItemNode  as unknown as ComponentType<NodeProps>,
+  questNode:    GraphQuestNode    as unknown as ComponentType<NodeProps>,
+  itemNode:     GraphItemNode     as unknown as ComponentType<NodeProps>,
+  buildingNode: GraphBuildingNode as unknown as ComponentType<NodeProps>,
 }
 
 const stateColor: Record<string, string> = {
@@ -40,6 +42,7 @@ interface GraphViewProps {
   onConnect?:      (connection: Connection) => void
   onEdgesDelete?:  (edges: Edge[]) => void
   onReconnect?:    (oldEdge: Edge, newConnection: Connection) => void
+  onEdgeClick?:    (e: React.MouseEvent, edge: Edge) => void
 }
 
 export function GraphView({
@@ -49,6 +52,7 @@ export function GraphView({
   onConnect,
   onEdgesDelete,
   onReconnect,
+  onEdgeClick,
 }: GraphViewProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges)
@@ -95,6 +99,7 @@ export function GraphView({
         onNodeClick={handleNodeClick}
         onConnect={onConnect}
         onReconnect={onReconnect}
+        onEdgeClick={onEdgeClick}
         fitView
         fitViewOptions={{ padding: 0.15 }}
         minZoom={0.3}

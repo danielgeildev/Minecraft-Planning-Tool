@@ -1,5 +1,6 @@
-import { useQuestStore } from '@/store/useQuestStore'
-import { useItemStore }  from '@/store/useItemStore'
+import { useQuestStore }    from '@/store/useQuestStore'
+import { useItemStore }     from '@/store/useItemStore'
+import { useBuildingStore } from '@/store/useBuildingStore'
 import type { AnyNode } from '@/types'
 
 /**
@@ -37,8 +38,10 @@ export function addRequiresDep(
 
   if (dependent.type === 'quest') {
     useQuestStore.getState().updateQuest(dependentId, { dependencies: newDeps })
-  } else {
+  } else if (dependent.type === 'item') {
     useItemStore.getState().updateItem(dependentId, { dependencies: newDeps })
+  } else {
+    useBuildingStore.getState().updateBuilding(dependentId, { dependencies: newDeps })
   }
 }
 
@@ -59,7 +62,9 @@ export function removeRequiresDep(
 
   if (dependent.type === 'quest') {
     useQuestStore.getState().updateQuest(dependentId, { dependencies: newDeps })
-  } else {
+  } else if (dependent.type === 'item') {
     useItemStore.getState().updateItem(dependentId, { dependencies: newDeps })
+  } else {
+    useBuildingStore.getState().updateBuilding(dependentId, { dependencies: newDeps })
   }
 }
