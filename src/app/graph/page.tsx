@@ -1,19 +1,23 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { Filter, Target } from 'lucide-react'
+import { type Connection, type Edge } from '@xyflow/react'
+import { Filter, Target, Plus, X } from 'lucide-react'
 
 import { useQuestStore }    from '@/store/useQuestStore'
 import { useItemStore }     from '@/store/useItemStore'
 import { useGoalStore }     from '@/store/useGoalStore'
-import { GraphView }        from '@/components/graph/GraphView'
-import { convertNodesToGraph } from '@/lib/graph/convert'
-import { applyAutoLayout }     from '@/lib/graph/layout'
+import { GraphView }              from '@/components/graph/GraphView'
+import { GraphCreateQuestModal }  from '@/components/graph/GraphCreateQuestModal'
+import { convertNodesToGraph }    from '@/lib/graph/convert'
+import { applyAutoLayout }        from '@/lib/graph/layout'
+import { validateNewRequiresEdge } from '@/lib/graph/validation'
+import { parseEdgeId, addRequiresDep, removeRequiresDep } from '@/lib/graph/editing'
 import { getNodeTitle, isNodeDone, type AnyNode } from '@/types'
 import { getNodeState, getBlockedDependencies, getDependencyChain } from '@/lib/progression'
 import { getRequiredNodesForGoal, getNextStepsForGoal, getBlockingNodesForGoal } from '@/lib/planning'
-import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
+import { Badge }   from '@/components/ui/Badge'
+import { Button }  from '@/components/ui/Button'
 
 type StatusFilter = 'all' | 'done' | 'available' | 'locked'
 
@@ -21,18 +25,20 @@ export default function GraphPage() {
   const quests = useQuestStore(s => s.quests)
   const items  = useItemStore(s => s.items)
 
-  const [showQuests, setShowQuests]       = useState(true)
-  const [showItems, setShowItems]         = useState(true)
-  const [statusFilter, setStatusFilter]   = useState<StatusFilter>('all')
-  const [modFilter, setModFilter]         = useState('all')
-  const [selectedNode, setSelectedNode]   = useState<AnyNode | null>(null)
-  const [showFilters, setShowFilters]     = useState(false)
+  const [showQuests, setShowQuests]         = useState(true)
+  const [showItems, setShowItems]           = useState(true)
+  const [statusFilter, setStatusFilter]     = useState<StatusFilter>('all')
+  const [modFilter, setModFilter]           = useState('all')
+  const [selectedNode, setSelectedNode]     = useState<AnyNode | null>(null)
+  const [showFilters, setShowFilters]       = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [edgeError, setEdgeError]           = useState<string | null>(null)
 
   const { goals, toggleGoal, isGoal } = useGoalStore()
 
   const allNodes: AnyNode[] = useMemo(
     () => [...quests, ...items],
-    [quests, items]
+    [quests, items],
   )
 
   // Compute goal highlight sets for all active goals
@@ -74,19 +80,77 @@ export default function GraphPage() {
 
   const { nodes: rawNodes, edges } = useMemo(
     () => convertNodesToGraph(allNodes, visibleNodes, highlights),
-    [allNodes, visibleNodes, highlights]
+    [allNodes, visibleNodes, highlights],
   )
 
   const nodes = useMemo(
     () => applyAutoLayout(rawNodes, edges),
-    [rawNodes, edges]
+    [rawNodes, edges],
   )
 
   const handleNodeClick = useCallback((node: AnyNode) => {
     setSelectedNode(prev => (prev?.id === node.id ? null : node))
   }, [])
 
-  // Detail panel data
+  // ─── Edge editing ──────────────────────────────────────────────────────────
+
+  const showEdgeError = useCallback((msg: string) => {
+    setEdgeError(msg)
+    const t = setTimeout(() => setEdgeError(null), 3500)
+    return () => clearTimeout(t)
+  }, [])
+
+  const handleConnect = useCallback((connection: Connection) => {
+    const { source, target } = connection
+    if (!source || !target) return
+
+    // In our model: source = required node, target = dependent node
+    const validation = validateNewRequiresEdge(target, source, allNodes)
+    if (!validation.ok) {
+      showEdgeError(validation.error ?? 'Ungültige Verbindung.')
+      return
+    }
+    addRequiresDep(target, source, allNodes)
+  }, [allNodes, showEdgeError])
+
+  const handleEdgesDelete = useCallback((deletedEdges: Edge[]) => {
+    deletedEdges.forEach(edge => {
+      const parsed = parseEdgeId(edge.id)
+      if (!parsed || parsed.type !== 'requires') return
+      // source = required node, target = dependent node
+      removeRequiresDep(parsed.target, parsed.source, allNodes)
+    })
+  }, [allNodes])
+
+  const handleReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
+    const parsed = parseEdgeId(oldEdge.id)
+    if (!parsed || parsed.type !== 'requires') return
+
+    const { source: newRequired, target: newDependent } = newConnection
+    if (!newRequired || !newDependent) return
+
+    // Temporarily remove the old dep so cycle check doesn't see it
+    removeRequiresDep(parsed.target, parsed.source, allNodes)
+
+    // Re-read allNodes after removal to get fresh state for validation
+    const freshNodes: AnyNode[] = [
+      ...useQuestStore.getState().quests,
+      ...useItemStore.getState().items,
+    ]
+
+    const validation = validateNewRequiresEdge(newDependent, newRequired, freshNodes)
+    if (!validation.ok) {
+      // Restore the old dep
+      addRequiresDep(parsed.target, parsed.source, allNodes)
+      showEdgeError(validation.error ?? 'Ungültige Verbindung.')
+      return
+    }
+
+    addRequiresDep(newDependent, newRequired, freshNodes)
+  }, [allNodes, showEdgeError])
+
+  // ─── Detail panel data ─────────────────────────────────────────────────────
+
   const nodeState    = selectedNode ? getNodeState(selectedNode.id, allNodes) : null
   const blockedBy    = selectedNode ? getBlockedDependencies(selectedNode.id, allNodes) : []
   const chain        = selectedNode ? getDependencyChain(selectedNode.id, allNodes) : []
@@ -94,7 +158,7 @@ export default function GraphPage() {
     ? allNodes.filter(n => n.dependencies.some(d => d.targetId === selectedNode.id && d.type === 'requires'))
     : []
 
-  const stateLabel: Record<string, string> = { done: 'Erledigt ✓', available: 'Verfügbar', locked: '🔒 Gesperrt' }
+  const stateLabel:   Record<string, string>               = { done: 'Erledigt ✓', available: 'Verfügbar', locked: '🔒 Gesperrt' }
   const stateVariant: Record<string, 'green' | 'amber' | 'gray'> = { done: 'green', available: 'amber', locked: 'gray' }
 
   return (
@@ -110,6 +174,16 @@ export default function GraphPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Create quest */}
+          <Button
+            size="sm"
+            onClick={() => setShowCreateModal(true)}
+            className="gap-1"
+          >
+            <Plus size={12} />
+            Neue Quest
+          </Button>
+
           {/* Quick toggles */}
           <button
             onClick={() => setShowQuests(v => !v)}
@@ -189,21 +263,41 @@ export default function GraphPage() {
             <span className="flex items-center gap-1 text-red-400">🔒 Blocker</span>
           </>
         )}
+        <span className="ml-auto flex items-center gap-2 text-gray-300 italic">
+          Verbindung ziehen · Entf zum Löschen
+        </span>
       </div>
+
+      {/* Edge validation error */}
+      {edgeError && (
+        <div className="flex items-center justify-between gap-2 px-4 py-2 bg-red-50 border-b border-red-100 text-xs text-red-600 flex-shrink-0">
+          <span>⚠️ {edgeError}</span>
+          <button onClick={() => setEdgeError(null)} className="hover:text-red-800">
+            <X size={12} />
+          </button>
+        </div>
+      )}
 
       {/* Main canvas + detail */}
       <div className="flex flex-1 min-h-0">
         {/* Graph canvas */}
         <div className="flex-1 min-w-0">
           {visibleNodes.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-              Keine Nodes sichtbar – Filter anpassen
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400 text-sm">
+              <span>Keine Nodes sichtbar – Filter anpassen</span>
+              <Button onClick={() => setShowCreateModal(true)} className="gap-1">
+                <Plus size={12} />
+                Erste Quest erstellen
+              </Button>
             </div>
           ) : (
             <GraphView
               nodes={nodes}
               edges={edges}
               onNodeClick={handleNodeClick}
+              onConnect={handleConnect}
+              onEdgesDelete={handleEdgesDelete}
+              onReconnect={handleReconnect}
             />
           )}
         </div>
@@ -368,6 +462,11 @@ export default function GraphPage() {
           </div>
         )}
       </div>
+
+      {/* Create quest modal */}
+      {showCreateModal && (
+        <GraphCreateQuestModal onClose={() => setShowCreateModal(false)} />
+      )}
     </div>
   )
 }

@@ -42,13 +42,18 @@ Eine persönliche Web-App zum Planen und Tracken von Quests, Gebäuden und Items
 - Grid- und Listenansicht
 - Filter nach Status und Mod, Suche nach Name
 
-### 🗺️ Dependency Graph
+### 🗺️ Dependency Graph (visueller Planer)
 - Interaktiver Graph aller Quests und Items mit ihren Abhängigkeiten
 - **Ziel-Highlighting**: aktives Ziel (pink 🎯), nächste Schritte (blau ▶), Blocker (rot 🔒), Pfad zum Ziel (violett)
 - Ziel direkt im Graph-Detailpanel setzen/entfernen
 - Crafting-Mengen als Edge-Labels (×8)
 - Filter: Status, Mod, Typ (Quests/Items)
 - Detailpanel beim Klick auf einen Node: Abhängigkeiten, Crafting-Zutaten, Fortschritt
+- **Neue Quest direkt im Graph erstellen** — "Neue Quest"-Button öffnet ein schnelles Erstellungs-Modal (Titel, Beschreibung, Priorität, Kategorie, Status)
+- **Abhängigkeiten direkt im Canvas zeichnen** — Handle ziehen (→) zwischen zwei Nodes erzeugt eine `requires`-Verbindung
+- **Verbindungen löschen** — Edge auswählen + Entf-Taste entfernt die Abhängigkeit aus dem Store
+- **Verbindungen neu verbinden** — Ende eines Pfeils auf einen anderen Node ziehen (Reconnect)
+- **Validierung in Echtzeit**: Selbst-Referenz, Duplikate und Kreisläufe werden abgelehnt mit sichtbarer Fehlermeldung
 
 ### 🏗️ Gebäude-Planer
 - Gebäude mit Name, Ort, Stil, Status planen
@@ -117,9 +122,10 @@ src/
 │   │   └── Sidebar.tsx     # Navigation
 │   ├── ui/                 # Button, Badge, Input, Modal, EmptyState
 │   ├── graph/
-│   │   ├── GraphView.tsx   # ReactFlow Canvas
-│   │   ├── GraphQuestNode.tsx  # Custom Node: Quest (mit Highlight-Styles)
-│   │   └── GraphItemNode.tsx   # Custom Node: Item (mit Highlight-Styles)
+│   │   ├── GraphView.tsx           # ReactFlow Canvas (mit onConnect, onEdgesDelete, onReconnect)
+│   │   ├── GraphQuestNode.tsx      # Custom Node: Quest (mit Highlight-Styles)
+│   │   ├── GraphItemNode.tsx       # Custom Node: Item (mit Highlight-Styles)
+│   │   └── GraphCreateQuestModal.tsx  # Schnell-Modal für neue Quest im Graph
 │   ├── goals/              # GoalCreationModal (Planungs-Flow)
 │   ├── quests/             # QuestCard, QuestForm
 │   ├── buildings/          # BuildingCard (Lightbox), BuildingForm (Upload)
@@ -132,7 +138,9 @@ src/
 │   │   └── index.ts        # getNodeState, isUnlocked, getDependencyChain
 │   └── graph/
 │       ├── convert.ts      # convertNodesToGraph (mit Highlight-Sets)
-│       └── layout.ts       # applyAutoLayout (dagre)
+│       ├── layout.ts       # applyAutoLayout (dagre)
+│       ├── validation.ts   # validateNewRequiresEdge (Selbst-Ref, Duplikat, Kreislauf)
+│       └── editing.ts      # addRequiresDep, removeRequiresDep, parseEdgeId
 │
 ├── store/
 │   ├── useQuestStore.ts    # Zustand + localStorage (atm10-quests-v2)
@@ -233,6 +241,6 @@ Die Ressourcenberechnung traversiert den Dependency-Graphen rekursiv:
 
 ## Bekannte Einschränkungen
 
-- Keine Export-Funktion (JSON/CSV)
 - Kein Dark Mode
 - Keine echten Mod-API-Daten — nur Mock-Daten als Startpunkt
+- Graph: Node-Positionen werden nicht gespeichert (Layout wird bei jedem Laden neu berechnet)

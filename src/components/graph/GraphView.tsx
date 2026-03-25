@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useEffect, type ComponentType } from 'react'
 import {
   ReactFlow,
   Background,
@@ -11,6 +11,9 @@ import {
   type Node,
   type Edge,
   type NodeTypes,
+  type NodeProps,
+  type Connection,
+  type EdgeChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -20,8 +23,8 @@ import type { GraphNodeData } from '@/lib/graph/convert'
 import type { AnyNode } from '@/types'
 
 const nodeTypes: NodeTypes = {
-  questNode: GraphQuestNode as any,
-  itemNode:  GraphItemNode  as any,
+  questNode: GraphQuestNode as unknown as ComponentType<NodeProps>,
+  itemNode:  GraphItemNode  as unknown as ComponentType<NodeProps>,
 }
 
 const stateColor: Record<string, string> = {
@@ -31,39 +34,73 @@ const stateColor: Record<string, string> = {
 }
 
 interface GraphViewProps {
-  nodes: Node<GraphNodeData>[]
-  edges: Edge[]
-  onNodeClick?: (node: AnyNode) => void
+  nodes:           Node<GraphNodeData>[]
+  edges:           Edge[]
+  onNodeClick?:    (node: AnyNode) => void
+  onConnect?:      (connection: Connection) => void
+  onEdgesDelete?:  (edges: Edge[]) => void
+  onReconnect?:    (oldEdge: Edge, newConnection: Connection) => void
 }
 
-export function GraphView({ nodes: initNodes, edges: initEdges, onNodeClick }: GraphViewProps) {
-  const [nodes, , onNodesChange] = useNodesState(initNodes)
-  const [edges, , onEdgesChange] = useEdgesState(initEdges)
+export function GraphView({
+  nodes:         initNodes,
+  edges:         initEdges,
+  onNodeClick,
+  onConnect,
+  onEdgesDelete,
+  onReconnect,
+}: GraphViewProps) {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initNodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges)
 
-  // Sync external changes
-  const syncedNodes = useMemo(() => initNodes, [initNodes])
-  const syncedEdges = useMemo(() => initEdges, [initEdges])
+  // Sync store-driven changes into ReactFlow state
+  useEffect(() => { setNodes(initNodes) }, [initNodes, setNodes])
+  useEffect(() => { setEdges(initEdges) }, [initEdges, setEdges])
 
   const handleNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
       const data = node.data as GraphNodeData
       onNodeClick?.(data.node)
     },
-    [onNodeClick]
+    [onNodeClick],
+  )
+
+  // Intercept edge-remove changes and forward to the parent instead of letting
+  // ReactFlow remove them from local state (store is the source of truth).
+  const handleEdgesChange = useCallback(
+    (changes: EdgeChange<Edge>[]) => {
+      const removals = changes.filter(c => c.type === 'remove')
+      const rest     = changes.filter(c => c.type !== 'remove')
+
+      if (rest.length > 0) onEdgesChange(rest)
+
+      if (removals.length > 0 && onEdgesDelete) {
+        const removed = removals
+          .map(c => edges.find(e => e.id === (c as { id: string }).id))
+          .filter((e): e is Edge => !!e)
+        if (removed.length > 0) onEdgesDelete(removed)
+      }
+    },
+    [edges, onEdgesChange, onEdgesDelete],
   )
 
   return (
     <div className="w-full h-full">
       <ReactFlow
-        nodes={syncedNodes}
-        edges={syncedEdges}
+        nodes={nodes}
+        edges={edges}
         nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={handleEdgesChange}
         onNodeClick={handleNodeClick}
+        onConnect={onConnect}
+        onReconnect={onReconnect}
         fitView
         fitViewOptions={{ padding: 0.15 }}
         minZoom={0.3}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
+        deleteKeyCode="Delete"
       >
         <Background color="#fda4af" gap={20} size={1} style={{ opacity: 0.2 }} />
         <Controls

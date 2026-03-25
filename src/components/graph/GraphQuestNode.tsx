@@ -37,8 +37,8 @@ export const GraphQuestNode = memo(({ data }: NodeProps<Node<GraphNodeData>>) =>
         ${h ? `${h.bg} ${h.border} ${h.ring}` : `${s.bg} ${s.border}`}
       `}
     >
-      <Handle type="target" position={Position.Left}  style={{ background: '#fda4af', border: 'none', width: 8, height: 8 }} />
-      <Handle type="source" position={Position.Right} style={{ background: '#fda4af', border: 'none', width: 8, height: 8 }} />
+      <Handle type="target" position={Position.Left}  style={{ background: '#fda4af', border: '2px solid #fb7185', width: 12, height: 12, cursor: 'crosshair' }} />
+      <Handle type="source" position={Position.Right} style={{ background: '#fda4af', border: '2px solid #fb7185', width: 12, height: 12, cursor: 'crosshair' }} />
 
       {/* Goal badge */}
       {data.highlight === 'goal' && (
