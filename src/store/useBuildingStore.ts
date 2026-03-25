@@ -82,7 +82,8 @@ export const useBuildingStore = create<BuildingStore>()(
         set(s => ({
           buildings: s.buildings.map(b => ({
             ...b,
-            dependencies: (b.dependencies ?? []).filter(d => d.targetId !== nodeId),
+            dependencies:    (b.dependencies ?? []).filter(d => d.targetId !== nodeId),
+            itemRequirements: (b.itemRequirements ?? []).filter(r => r.itemId !== nodeId),
           })),
         })),
     }),
@@ -98,8 +99,9 @@ export const useBuildingStore = create<BuildingStore>()(
         if (state) {
           state.buildings = state.buildings.map(b => ({
             ...b,
-            type: (b as Building).type ?? 'building',
-            dependencies: (b as Building).dependencies ?? [],
+            type:             (b as Building).type ?? 'building',
+            dependencies:     (b as Building).dependencies ?? [],
+            itemRequirements: (b as Building).itemRequirements ?? [],
           }))
         }
       },

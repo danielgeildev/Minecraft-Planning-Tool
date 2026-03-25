@@ -76,6 +76,12 @@ export interface Goal {
 
 export type BuildingStatus = 'planned' | 'in-progress' | 'done'
 
+export interface BuildingRequirement {
+  itemId: string
+  requiredAmount: number
+  preparedAmount: number
+}
+
 export interface Building {
   id: string
   type: 'building'
@@ -83,9 +89,10 @@ export interface Building {
   location: string
   style: string
   status: BuildingStatus
-  requirements: string[]
+  requirements: string[]           // free-text list (decoration, notes, etc.)
+  itemRequirements: BuildingRequirement[]  // structured item amounts
   inspoPics: string[]
-  dependencies: Dependency[]
+  dependencies: Dependency[]       // graph edges (building→item / building→building)
   notes: string
   createdAt: string
   updatedAt: string

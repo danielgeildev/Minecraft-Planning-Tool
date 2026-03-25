@@ -5,7 +5,7 @@ import { Pencil, Trash2, MapPin, Palette, X, ChevronLeft, ChevronRight } from 'l
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { BuildingImage } from '@/components/buildings/BuildingImage'
-import type { Building, BuildingStatus } from '@/types'
+import type { Building, BuildingRequirement, BuildingStatus } from '@/types'
 import { RelatedNotes } from '@/components/notes/RelatedNotes'
 import { useItemStore } from '@/store/useItemStore'
 
@@ -26,10 +26,10 @@ export function BuildingCard({ building, onEdit, onDelete, onStatusChange }: Bui
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
   const items = useItemStore(s => s.items)
 
-  const linkedItems = building.dependencies
-    .filter(d => d.type === 'requires')
-    .map(d => items.find(i => i.id === d.targetId))
-    .filter((i): i is NonNullable<typeof i> => !!i)
+  type ReqWithItem = { req: BuildingRequirement; item: NonNullable<ReturnType<typeof items.find>> }
+  const reqItems = (building.itemRequirements ?? [])
+    .map(req => ({ req, item: items.find(i => i.id === req.itemId) }))
+    .filter((x): x is ReqWithItem => !!x.item)
 
   const status = statusConfig[building.status]
   const nextStatus: BuildingStatus =
@@ -119,23 +119,35 @@ export function BuildingCard({ building, onEdit, onDelete, onStatusChange }: Bui
           </div>
         )}
 
-        {/* Linked Items */}
-        {linkedItems.length > 0 && (
+        {/* Material-Anforderungen */}
+        {reqItems.length > 0 && (
           <div className="mt-3">
-            <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">📦 Verknüpfte Items</p>
-            <div className="flex flex-wrap gap-1">
-              {linkedItems.map(item => (
-                <span
-                  key={item.id}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${
-                    item.status === 'have'
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-900 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-purple-50 dark:bg-purple-950/40 border-purple-100 dark:border-purple-900 text-purple-600 dark:text-purple-400'
-                  }`}
-                >
-                  {item.status === 'have' ? '✅' : '📦'} {item.name}
-                </span>
-              ))}
+            <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">📦 Materialien</p>
+            <div className="flex flex-col gap-2">
+              {reqItems.map(({ req, item }) => {
+                const done = req.preparedAmount >= req.requiredAmount
+                const pct  = req.requiredAmount > 0
+                  ? Math.min(100, Math.round((req.preparedAmount / req.requiredAmount) * 100))
+                  : 100
+                return (
+                  <div key={req.itemId}>
+                    <div className="flex items-center justify-between text-xs mb-0.5">
+                      <span className={`truncate flex-1 ${done ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-slate-300'}`}>
+                        {item.name}
+                      </span>
+                      <span className={`ml-2 flex-shrink-0 font-medium tabular-nums ${done ? 'text-emerald-500' : 'text-gray-400 dark:text-slate-500'}`}>
+                        {done ? '✓ fertig' : `${req.preparedAmount} / ${req.requiredAmount}`}
+                      </span>
+                    </div>
+                    <div className="h-1 rounded-full bg-rose-100/60 dark:bg-slate-600">
+                      <div
+                        className={`h-full rounded-full transition-all ${done ? 'bg-emerald-400' : 'bg-pink-400'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}

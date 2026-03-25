@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { useBuildingStore } from '@/store/useBuildingStore'
-import { useItemStore } from '@/store/useItemStore'
 import { BuildingCard } from '@/components/buildings/BuildingCard'
 import { BuildingForm } from '@/components/buildings/BuildingForm'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -18,7 +17,6 @@ type FilterStatus = 'all' | BuildingStatus
 export default function BuildingsPage() {
   const { buildings, addBuilding, updateBuilding, deleteBuilding, undoDelete, lastDeleted } =
     useBuildingStore()
-  const { items } = useItemStore()
 
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Building | null>(null)
@@ -160,7 +158,6 @@ export default function BuildingsPage() {
         onClose={handleFormClose}
         onSubmit={handleSubmit}
         initialData={editTarget}
-        allItems={items}
       />
 
       {/* Confirm delete dialog */}

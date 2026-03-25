@@ -26,10 +26,11 @@ export function GraphCreateBuildingModal({ onClose }: Props) {
       location: location.trim(),
       style: style.trim(),
       status,
-      requirements: [],
-      inspoPics: [],
-      dependencies: [],
-      notes: '',
+      requirements:    [],
+      itemRequirements: [],
+      inspoPics:       [],
+      dependencies:    [],
+      notes:           '',
     })
     onClose()
   }
