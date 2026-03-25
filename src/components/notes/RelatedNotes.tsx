@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import Link from 'next/link'
 import { useNoteStore } from '@/store/useNoteStore'
 
@@ -8,7 +9,11 @@ interface RelatedNotesProps {
 }
 
 export function RelatedNotes({ nodeId }: RelatedNotesProps) {
-  const notes = useNoteStore(s => s.notes.filter(n => n.linkedNodeIds.includes(nodeId)))
+  const allNotes = useNoteStore(s => s.notes)
+  const notes = useMemo(
+    () => allNotes.filter(n => n.linkedNodeIds.includes(nodeId)),
+    [allNotes, nodeId],
+  )
 
   if (notes.length === 0) return null
 
