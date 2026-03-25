@@ -12,14 +12,16 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UndoToast } from '@/components/ui/UndoToast'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useDeleteNode } from '@/hooks/useDeleteNode'
 import type { ItemNode, ItemStatus, AnyNode } from '@/types'
 
 type FilterStatus = 'all' | ItemStatus
 type ViewMode = 'grid' | 'list'
 
 export default function ItemsPage() {
-  const { items, addItem, updateItem, deleteItem, undoDelete, lastDeleted } = useItemStore()
+  const { items, addItem, updateItem, lastDeleted, undoDelete } = useItemStore()
   const { quests } = useQuestStore()
+  const { deleteNodeAndCleanup } = useDeleteNode()
 
   const allNodes: AnyNode[] = useMemo(() => [...quests, ...items], [quests, items])
 
@@ -80,7 +82,7 @@ export default function ItemsPage() {
   const handleDeleteConfirm = () => {
     if (!deleteId) return
     if (selectedItem?.id === deleteId) setSelectedItem(null)
-    deleteItem(deleteId)
+    deleteNodeAndCleanup(deleteId, 'item')
     setDeleteId(null)
     setShowUndo(true)
   }

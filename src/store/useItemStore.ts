@@ -17,6 +17,9 @@ interface ItemStore {
   deleteItem: (id: string) => void
   undoDelete: () => void
 
+  // Cross-store cleanup — removes all dependencies pointing to a given node id
+  purgeDependenciesTo: (nodeId: string) => void
+
   getItemById: (id: string) => ItemNode | undefined
 }
 
@@ -79,6 +82,14 @@ export const useItemStore = create<ItemStore>()(
           set(s => ({ items: [lastDeleted, ...s.items], lastDeleted: null }))
         }
       },
+
+      purgeDependenciesTo: (nodeId) =>
+        set(s => ({
+          items: s.items.map(i => ({
+            ...i,
+            dependencies: i.dependencies.filter(d => d.targetId !== nodeId),
+          })),
+        })),
 
       getItemById: (id) => get().items.find(i => i.id === id),
     }),

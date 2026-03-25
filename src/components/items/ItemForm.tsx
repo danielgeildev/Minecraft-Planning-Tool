@@ -146,7 +146,6 @@ export function ItemForm({ open, onClose, onSubmit, initialData, allNodes }: Ite
                         >
                           <option value="requires">requires</option>
                           <option value="related">related</option>
-                          <option value="unlocks">unlocks</option>
                         </select>
                         {dep!.type === 'requires' && (
                           <div className="flex items-center gap-1">

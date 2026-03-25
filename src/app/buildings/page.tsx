@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UndoToast } from '@/components/ui/UndoToast'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { deleteImages, isDataUrl } from '@/lib/imageStorage'
 import type { Building, BuildingStatus } from '@/types'
 
 type FilterStatus = 'all' | BuildingStatus
@@ -52,6 +53,12 @@ export default function BuildingsPage() {
 
   const handleDeleteConfirm = () => {
     if (!deleteId) return
+    const building = buildings.find(b => b.id === deleteId)
+    if (building) {
+      // Delete associated images from IndexedDB (ignore legacy data: URLs)
+      const imageKeys = building.inspoPics.filter(p => !isDataUrl(p))
+      if (imageKeys.length > 0) deleteImages(imageKeys).catch(() => {/* best-effort */})
+    }
     deleteBuilding(deleteId)
     setDeleteId(null)
     setShowUndo(true)

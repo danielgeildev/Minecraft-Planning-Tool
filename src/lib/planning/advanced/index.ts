@@ -3,6 +3,11 @@
  *
  * getNextBestAction: returns the single best node to work on right now,
  * scored by unlock-impact, effort, and partial inventory progress.
+ *
+ * NOTE: Not yet connected to the UI.
+ * To activate getNextBestAction: call it from goals/page.tsx per goal.
+ * To activate getGlobalNextBestAction: use it in the dashboard to show a
+ * global "best next step" banner across all active goals.
  */
 
 import type { AnyNode, InventoryItem } from '@/types'

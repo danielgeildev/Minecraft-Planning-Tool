@@ -101,20 +101,3 @@ export function convertNodesToGraph(
   return { nodes, edges }
 }
 
-/**
- * Build edges from all dependencies (for full graph export / analysis).
- */
-export function buildEdgesFromDependencies(allNodes: AnyNode[]): Edge[] {
-  const edges: Edge[] = []
-  allNodes.forEach(node => {
-    node.dependencies.forEach(dep => {
-      edges.push({
-        id:     `${dep.targetId}→${node.id}:${dep.type}`,
-        source: dep.targetId,
-        target: node.id,
-        type:   'smoothstep',
-      })
-    })
-  })
-  return edges
-}

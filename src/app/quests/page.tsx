@@ -11,6 +11,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UndoToast } from '@/components/ui/UndoToast'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useDeleteNode } from '@/hooks/useDeleteNode'
 import { isUnlocked, getBlockedDependencies } from '@/lib/progression'
 import type { QuestNode, QuestStatus, AnyNode } from '@/types'
 
@@ -18,9 +19,10 @@ type FilterStatus = 'all' | QuestStatus
 type FilterPriority = 'all' | 'low' | 'medium' | 'high'
 
 export default function QuestsPage() {
-  const { quests, addQuest, updateQuest, deleteQuest, undoDelete, getChildren, lastDeleted } =
+  const { quests, addQuest, updateQuest, getChildren, lastDeleted, undoDelete } =
     useQuestStore()
   const { items } = useItemStore()
+  const { deleteNodeAndCleanup } = useDeleteNode()
 
   const allNodes: AnyNode[] = useMemo(() => [...quests, ...items], [quests, items])
 
@@ -74,7 +76,7 @@ export default function QuestsPage() {
 
   const handleDeleteConfirm = () => {
     if (!deleteId) return
-    deleteQuest(deleteId)
+    deleteNodeAndCleanup(deleteId, 'quest')
     setDeleteId(null)
     setShowUndo(true)
   }

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Pencil, Trash2, MapPin, Palette, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { BuildingImage } from '@/components/buildings/BuildingImage'
 import type { Building, BuildingStatus } from '@/types'
 
 const statusConfig: Record<BuildingStatus, { label: string; variant: 'gray' | 'amber' | 'green' }> = {
@@ -40,14 +41,13 @@ export function BuildingCard({ building, onEdit, onDelete, onStatusChange }: Bui
         {/* Thumbnail strip */}
         {pics.length > 0 && (
           <div className="mb-3 flex gap-1.5 overflow-x-auto pb-0.5">
-            {pics.map((src, i) => (
+            {pics.map((ref, i) => (
               <button
                 key={i}
                 onClick={() => openLightbox(i)}
                 className="flex-shrink-0 w-20 h-14 rounded-xl overflow-hidden border border-rose-100 hover:border-pink-300 transition-colors"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
+                <BuildingImage imageRef={ref} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
               </button>
             ))}
           </div>
@@ -135,9 +135,8 @@ export function BuildingCard({ building, onEdit, onDelete, onStatusChange }: Bui
             </button>
 
             {/* Image */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={pics[lightboxIdx]}
+            <BuildingImage
+              imageRef={pics[lightboxIdx]}
               alt={`Screenshot ${lightboxIdx + 1}`}
               className="w-full max-h-[80vh] object-contain rounded-xl"
             />

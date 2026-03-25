@@ -5,7 +5,11 @@ import { Plus, X, ImagePlus } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { BuildingImage } from '@/components/buildings/BuildingImage'
+import { saveImage, deleteImage, isDataUrl } from '@/lib/imageStorage'
 import type { Building, BuildingStatus } from '@/types'
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5 MB
 
 interface BuildingFormProps {
   open: boolean
@@ -25,26 +29,33 @@ const emptyForm = {
 }
 
 export function BuildingForm({ open, onClose, onSubmit, initialData }: BuildingFormProps) {
-  const [form, setForm]       = useState(emptyForm)
-  const [newReq, setNewReq]   = useState('')
+  const [form, setForm]         = useState(emptyForm)
+  const [newReq, setNewReq]     = useState('')
   const [dragOver, setDragOver] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
+  // Track keys added during this session so we can clean up on cancel
+  const newKeysRef = useRef<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (initialData) {
-      setForm({
-        name:         initialData.name,
-        location:     initialData.location,
-        style:        initialData.style,
-        status:       initialData.status,
-        requirements: [...initialData.requirements],
-        inspoPics:    [...initialData.inspoPics],
-        notes:        initialData.notes,
-      })
-    } else {
-      setForm(emptyForm)
+    if (open) {
+      newKeysRef.current = []
+      setImageError(null)
+      if (initialData) {
+        setForm({
+          name:         initialData.name,
+          location:     initialData.location,
+          style:        initialData.style,
+          status:       initialData.status,
+          requirements: [...initialData.requirements],
+          inspoPics:    [...initialData.inspoPics],
+          notes:        initialData.notes,
+        })
+      } else {
+        setForm(emptyForm)
+      }
+      setNewReq('')
     }
-    setNewReq('')
   }, [initialData, open])
 
   const addRequirement = () => {
@@ -57,34 +68,64 @@ export function BuildingForm({ open, onClose, onSubmit, initialData }: BuildingF
   const removeRequirement = (i: number) =>
     setForm(p => ({ ...p, requirements: p.requirements.filter((_, idx) => idx !== i) }))
 
-  const removeImage = (i: number) =>
+  const removeImage = (i: number) => {
+    const key = form.inspoPics[i]
+    // Delete from IndexedDB immediately if it's a key (not a legacy data URL)
+    if (!isDataUrl(key)) {
+      deleteImage(key).catch(() => {/* best-effort */})
+      newKeysRef.current = newKeysRef.current.filter(k => k !== key)
+    }
     setForm(p => ({ ...p, inspoPics: p.inspoPics.filter((_, idx) => idx !== i) }))
+  }
 
   const processFiles = (files: FileList | null) => {
     if (!files) return
+    setImageError(null)
+
     Array.from(files).forEach(file => {
       if (!file.type.startsWith('image/')) return
-      const reader = new FileReader()
-      reader.onload = e => {
-        const dataUrl = e.target?.result as string
-        if (dataUrl) {
-          setForm(p => ({ ...p, inspoPics: [...p.inspoPics, dataUrl] }))
-        }
+
+      if (file.size > MAX_IMAGE_BYTES) {
+        setImageError(`"${file.name}" ist zu groß (max. 5 MB pro Bild).`)
+        return
       }
-      reader.readAsDataURL(file)
+
+      const key = crypto.randomUUID()
+      saveImage(key, file)
+        .then(() => {
+          newKeysRef.current.push(key)
+          setForm(p => ({ ...p, inspoPics: [...p.inspoPics, key] }))
+        })
+        .catch(() => {
+          setImageError(`"${file.name}" konnte nicht gespeichert werden.`)
+        })
     })
   }
 
   const handleSubmit = () => {
     if (!form.name.trim()) return
+    // Keys are already in IndexedDB; just pass them through
     onSubmit(form)
+    newKeysRef.current = [] // committed — don't clean up on close
+    onClose()
+  }
+
+  const handleClose = () => {
+    // Clean up any newly-added images that weren't submitted
+    const keysToClean = newKeysRef.current.filter(k => form.inspoPics.includes(k))
+    if (keysToClean.length > 0) {
+      import('@/lib/imageStorage').then(({ deleteImages }) => {
+        deleteImages(keysToClean).catch(() => {/* best-effort */})
+      })
+    }
+    newKeysRef.current = []
     onClose()
   }
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={initialData ? 'Gebäude bearbeiten' : 'Neues Gebäude'}
       maxWidth="max-w-xl"
     >
@@ -167,24 +208,32 @@ export function BuildingForm({ open, onClose, onSubmit, initialData }: BuildingF
           >
             <ImagePlus size={20} className="mx-auto mb-1 text-rose-300" />
             <p className="text-xs text-gray-400">Klicken oder Bilder hierher ziehen</p>
-            <p className="text-xs text-gray-300 mt-0.5">PNG, JPG, WebP</p>
+            <p className="text-xs text-gray-300 mt-0.5">PNG, JPG, WebP · max. 5 MB pro Bild</p>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               multiple
               className="hidden"
-              onChange={e => processFiles(e.target.files)}
+              onChange={e => { processFiles(e.target.files); e.target.value = '' }}
             />
           </div>
+
+          {/* Error */}
+          {imageError && (
+            <p className="text-xs text-red-500 rounded-lg bg-red-50 px-3 py-2">{imageError}</p>
+          )}
 
           {/* Preview grid */}
           {form.inspoPics.length > 0 && (
             <div className="grid grid-cols-3 gap-2">
-              {form.inspoPics.map((src, i) => (
+              {form.inspoPics.map((ref, i) => (
                 <div key={i} className="relative group aspect-video rounded-xl overflow-hidden border border-rose-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt={`Screenshot ${i + 1}`} className="w-full h-full object-cover" />
+                  <BuildingImage
+                    imageRef={ref}
+                    alt={`Screenshot ${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
                   <button
                     onClick={() => removeImage(i)}
                     className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -206,7 +255,7 @@ export function BuildingForm({ open, onClose, onSubmit, initialData }: BuildingF
         />
 
         <div className="flex justify-end gap-2 pt-1">
-          <Button variant="secondary" onClick={onClose}>Abbrechen</Button>
+          <Button variant="secondary" onClick={handleClose}>Abbrechen</Button>
           <Button onClick={handleSubmit} disabled={!form.name.trim()}>
             {initialData ? 'Speichern' : 'Erstellen'}
           </Button>

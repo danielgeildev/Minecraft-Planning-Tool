@@ -19,6 +19,9 @@ interface QuestStore {
   deleteQuest: (id: string) => void
   undoDelete:  () => void
 
+  // Cross-store cleanup — removes all dependencies pointing to a given node id
+  purgeDependenciesTo: (nodeId: string) => void
+
   // Queries
   getQuestById: (id: string) => QuestNode | undefined
   getChildren:  (parentId: string) => QuestNode[]
@@ -84,6 +87,14 @@ export const useQuestStore = create<QuestStore>()(
           set(s => ({ quests: [lastDeleted, ...s.quests], lastDeleted: null }))
         }
       },
+
+      purgeDependenciesTo: (nodeId) =>
+        set(s => ({
+          quests: s.quests.map(q => ({
+            ...q,
+            dependencies: q.dependencies.filter(d => d.targetId !== nodeId),
+          })),
+        })),
 
       getQuestById: (id) => get().quests.find(q => q.id === id),
       getChildren:  (parentId) => get().quests.filter(q => q.parentId === parentId),
