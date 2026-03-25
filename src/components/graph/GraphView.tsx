@@ -108,12 +108,16 @@ export function GraphView({
         onReconnect={onReconnect}
         onEdgeClick={onEdgeClick}
         fitView
-        fitViewOptions={{ padding: 0.15 }}
-        minZoom={0.3}
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.2}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
         deleteKeyCode="Delete"
         connectionRadius={50}
+        // Keep nodes rendered above edges at all times so no edge
+        // appears to "pierce" a node even when selected.
+        elevateEdgesOnSelect={false}
+        elevateNodesOnSelect={true}
       >
         <Background color="#fda4af" gap={20} size={1} style={{ opacity: 0.2 }} />
         <Controls

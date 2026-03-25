@@ -120,7 +120,8 @@ export function convertNodesToGraph(
           stroke:          edgeColor,
           strokeWidth:     isOnPath ? 3 : isRequires ? 2 : 1.5,
           strokeDasharray: isRelated ? '5 4' : undefined,
-          opacity:         isRelated ? 0.55 : 1,
+          // De-emphasise related edges so structural requires/unlocks stand out
+          opacity:         isRelated ? 0.45 : 1,
         },
         markerEnd: {
           type:   'arrowclosed',
