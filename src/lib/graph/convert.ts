@@ -49,7 +49,9 @@ export function convertNodesToGraph(
 
     return {
       id:   node.id,
-      type: node.type === 'quest' ? 'questNode' : 'itemNode',
+      type: node.type === 'quest' ? 'questNode'
+          : node.type === 'item'  ? 'itemNode'
+          : 'buildingNode',
       data: {
         node,
         state: getNodeState(node.id, allNodes),

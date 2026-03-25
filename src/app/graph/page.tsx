@@ -2,16 +2,18 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { type Connection, type Edge } from '@xyflow/react'
-import { Filter, Target, Plus, X } from 'lucide-react'
+import { Filter, Target, Plus, X, Trash2 } from 'lucide-react'
 
 import { useQuestStore }    from '@/store/useQuestStore'
 import { useItemStore }     from '@/store/useItemStore'
 import { useGoalStore }     from '@/store/useGoalStore'
-import { GraphView }              from '@/components/graph/GraphView'
-import { GraphCreateQuestModal }  from '@/components/graph/GraphCreateQuestModal'
-import { convertNodesToGraph }    from '@/lib/graph/convert'
-import { applyAutoLayout }        from '@/lib/graph/layout'
-import { validateNewRequiresEdge } from '@/lib/graph/validation'
+import { useBuildingStore } from '@/store/useBuildingStore'
+import { GraphView }                   from '@/components/graph/GraphView'
+import { GraphCreateQuestModal }       from '@/components/graph/GraphCreateQuestModal'
+import { GraphCreateBuildingModal }    from '@/components/graph/GraphCreateBuildingModal'
+import { convertNodesToGraph }         from '@/lib/graph/convert'
+import { applyAutoLayout }             from '@/lib/graph/layout'
+import { validateNewRequiresEdge }     from '@/lib/graph/validation'
 import { parseEdgeId, addRequiresDep, removeRequiresDep } from '@/lib/graph/editing'
 import { getNodeTitle, isNodeDone, type AnyNode } from '@/types'
 import { getNodeState, getBlockedDependencies, getDependencyChain } from '@/lib/progression'
@@ -22,23 +24,27 @@ import { Button }  from '@/components/ui/Button'
 type StatusFilter = 'all' | 'done' | 'available' | 'locked'
 
 export default function GraphPage() {
-  const quests = useQuestStore(s => s.quests)
-  const items  = useItemStore(s => s.items)
+  const quests    = useQuestStore(s => s.quests)
+  const items     = useItemStore(s => s.items)
+  const buildings = useBuildingStore(s => s.buildings)
 
-  const [showQuests, setShowQuests]         = useState(true)
-  const [showItems, setShowItems]           = useState(true)
-  const [statusFilter, setStatusFilter]     = useState<StatusFilter>('all')
-  const [modFilter, setModFilter]           = useState('all')
-  const [selectedNode, setSelectedNode]     = useState<AnyNode | null>(null)
-  const [showFilters, setShowFilters]       = useState(false)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [edgeError, setEdgeError]           = useState<string | null>(null)
+  const [showQuests,    setShowQuests]    = useState(true)
+  const [showItems,     setShowItems]     = useState(true)
+  const [showBuildings, setShowBuildings] = useState(true)
+  const [statusFilter,  setStatusFilter]  = useState<StatusFilter>('all')
+  const [modFilter,     setModFilter]     = useState('all')
+  const [selectedNode,  setSelectedNode]  = useState<AnyNode | null>(null)
+  const [selectedEdge,  setSelectedEdge]  = useState<Edge | null>(null)
+  const [showFilters,   setShowFilters]   = useState(false)
+  const [showCreateQuestModal,    setShowCreateQuestModal]    = useState(false)
+  const [showCreateBuildingModal, setShowCreateBuildingModal] = useState(false)
+  const [edgeError,     setEdgeError]     = useState<string | null>(null)
 
   const { goals, toggleGoal, isGoal } = useGoalStore()
 
   const allNodes: AnyNode[] = useMemo(
-    () => [...quests, ...items],
-    [quests, items],
+    () => [...quests, ...items, ...buildings],
+    [quests, items, buildings],
   )
 
   // Compute goal highlight sets for all active goals
@@ -65,8 +71,9 @@ export default function GraphPage() {
 
   const visibleNodes = useMemo(() => {
     return allNodes.filter(node => {
-      if (!showQuests && node.type === 'quest') return false
-      if (!showItems  && node.type === 'item')  return false
+      if (!showQuests    && node.type === 'quest')    return false
+      if (!showItems     && node.type === 'item')     return false
+      if (!showBuildings && node.type === 'building') return false
       if (modFilter !== 'all' && node.type === 'item' && node.mod !== modFilter) return false
 
       if (statusFilter !== 'all') {
@@ -76,7 +83,7 @@ export default function GraphPage() {
 
       return true
     })
-  }, [allNodes, showQuests, showItems, statusFilter, modFilter])
+  }, [allNodes, showQuests, showItems, showBuildings, statusFilter, modFilter])
 
   const { nodes: rawNodes, edges } = useMemo(
     () => convertNodesToGraph(allNodes, visibleNodes, highlights),
@@ -89,7 +96,13 @@ export default function GraphPage() {
   )
 
   const handleNodeClick = useCallback((node: AnyNode) => {
+    setSelectedEdge(null)
     setSelectedNode(prev => (prev?.id === node.id ? null : node))
+  }, [])
+
+  const handleEdgeClick = useCallback((_e: React.MouseEvent, edge: Edge) => {
+    setSelectedNode(null)
+    setSelectedEdge(prev => (prev?.id === edge.id ? null : edge))
   }, [])
 
   // ─── Edge editing ──────────────────────────────────────────────────────────
@@ -120,7 +133,13 @@ export default function GraphPage() {
       // source = required node, target = dependent node
       removeRequiresDep(parsed.target, parsed.source, allNodes)
     })
+    setSelectedEdge(null)
   }, [allNodes])
+
+  const handleDeleteSelectedEdge = useCallback(() => {
+    if (!selectedEdge) return
+    handleEdgesDelete([selectedEdge])
+  }, [selectedEdge, handleEdgesDelete])
 
   const handleReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
     const parsed = parseEdgeId(oldEdge.id)
@@ -136,6 +155,7 @@ export default function GraphPage() {
     const freshNodes: AnyNode[] = [
       ...useQuestStore.getState().quests,
       ...useItemStore.getState().items,
+      ...useBuildingStore.getState().buildings,
     ]
 
     const validation = validateNewRequiresEdge(newDependent, newRequired, freshNodes)
@@ -158,6 +178,11 @@ export default function GraphPage() {
     ? allNodes.filter(n => n.dependencies.some(d => d.targetId === selectedNode.id && d.type === 'requires'))
     : []
 
+  // Buildings that depend on the selected item/quest
+  const usedInBuildings = selectedNode && selectedNode.type !== 'building'
+    ? buildings.filter(b => b.dependencies.some(d => d.targetId === selectedNode.id))
+    : []
+
   const stateLabel:   Record<string, string>               = { done: 'Erledigt ✓', available: 'Verfügbar', locked: '🔒 Gesperrt' }
   const stateVariant: Record<string, 'green' | 'amber' | 'gray'> = { done: 'green', available: 'amber', locked: 'gray' }
 
@@ -174,14 +199,38 @@ export default function GraphPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Delete selected edge */}
+          {selectedEdge && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleDeleteSelectedEdge}
+              className="gap-1 text-red-500 border-red-200 hover:bg-red-50"
+            >
+              <Trash2 size={12} />
+              Verbindung löschen
+            </Button>
+          )}
+
           {/* Create quest */}
           <Button
             size="sm"
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => setShowCreateQuestModal(true)}
             className="gap-1"
           >
             <Plus size={12} />
             Neue Quest
+          </Button>
+
+          {/* Create building */}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setShowCreateBuildingModal(true)}
+            className="gap-1 border-teal-200 text-teal-700 hover:bg-teal-50"
+          >
+            <Plus size={12} />
+            Neues Gebäude
           </Button>
 
           {/* Quick toggles */}
@@ -200,6 +249,14 @@ export default function GraphPage() {
             }`}
           >
             📦 Items
+          </button>
+          <button
+            onClick={() => setShowBuildings(v => !v)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+              showBuildings ? 'bg-teal-400 text-white border-teal-400' : 'bg-white text-gray-400 border-gray-200'
+            }`}
+          >
+            🏗️ Gebäude
           </button>
 
           <Button
@@ -264,7 +321,7 @@ export default function GraphPage() {
           </>
         )}
         <span className="ml-auto flex items-center gap-2 text-gray-300 italic">
-          Verbindung ziehen · Entf zum Löschen
+          Verbindung ziehen · Entf zum Löschen · Kante anklicken zum Auswählen
         </span>
       </div>
 
@@ -285,7 +342,7 @@ export default function GraphPage() {
           {visibleNodes.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400 text-sm">
               <span>Keine Nodes sichtbar – Filter anpassen</span>
-              <Button onClick={() => setShowCreateModal(true)} className="gap-1">
+              <Button onClick={() => setShowCreateQuestModal(true)} className="gap-1">
                 <Plus size={12} />
                 Erste Quest erstellen
               </Button>
@@ -298,6 +355,7 @@ export default function GraphPage() {
               onConnect={handleConnect}
               onEdgesDelete={handleEdgesDelete}
               onReconnect={handleReconnect}
+              onEdgeClick={handleEdgeClick}
             />
           )}
         </div>
@@ -309,7 +367,7 @@ export default function GraphPage() {
             <div className="px-4 py-3 border-b border-rose-50">
               <div className="flex items-center gap-2">
                 <span className="text-lg">
-                  {selectedNode.type === 'quest' ? '📋' : '📦'}
+                  {selectedNode.type === 'quest' ? '📋' : selectedNode.type === 'item' ? '📦' : '🏗️'}
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-gray-800 truncate">
@@ -318,18 +376,23 @@ export default function GraphPage() {
                   {selectedNode.type === 'item' && (
                     <p className="text-xs text-pink-400">{selectedNode.mod}</p>
                   )}
+                  {selectedNode.type === 'building' && selectedNode.location && (
+                    <p className="text-xs text-teal-500">{selectedNode.location}</p>
+                  )}
                 </div>
-                <button
-                  onClick={() => toggleGoal(selectedNode.id)}
-                  className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
-                    isGoal(selectedNode.id)
-                      ? 'bg-pink-100 text-pink-500'
-                      : 'text-gray-300 hover:text-pink-400'
-                  }`}
-                  title={isGoal(selectedNode.id) ? 'Ziel entfernen' : 'Als Ziel setzen'}
-                >
-                  <Target size={13} />
-                </button>
+                {selectedNode.type !== 'building' && (
+                  <button
+                    onClick={() => toggleGoal(selectedNode.id)}
+                    className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
+                      isGoal(selectedNode.id)
+                        ? 'bg-pink-100 text-pink-500'
+                        : 'text-gray-300 hover:text-pink-400'
+                    }`}
+                    title={isGoal(selectedNode.id) ? 'Ziel entfernen' : 'Als Ziel setzen'}
+                  >
+                    <Target size={13} />
+                  </button>
+                )}
               </div>
               {nodeState && (
                 <div className="mt-2">
@@ -361,6 +424,29 @@ export default function GraphPage() {
                   )}
                 </>
               )}
+              {selectedNode.type === 'building' && (
+                <>
+                  {selectedNode.style && (
+                    <div className="rounded-xl bg-teal-50 p-2.5">
+                      <p className="font-semibold text-teal-600 mb-1">🎨 Stil</p>
+                      <p className="text-gray-600">{selectedNode.style}</p>
+                    </div>
+                  )}
+                  {selectedNode.requirements.length > 0 && (
+                    <div>
+                      <p className="font-semibold text-gray-500 mb-1.5">📋 Anforderungen</p>
+                      <ul className="flex flex-col gap-0.5">
+                        {selectedNode.requirements.map((r, i) => (
+                          <li key={i} className="text-gray-600 flex items-center gap-1">
+                            <span className="w-1 h-1 rounded-full bg-teal-300 flex-shrink-0" />
+                            {r}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
 
               {/* Blocked by */}
               {blockedBy.length > 0 && (
@@ -373,7 +459,7 @@ export default function GraphPage() {
                         onClick={() => setSelectedNode(n)}
                         className="flex items-center gap-1.5 text-left rounded-lg bg-gray-50 px-2 py-1.5 hover:bg-gray-100 transition-colors"
                       >
-                        <span>{n.type === 'quest' ? '📋' : '📦'}</span>
+                        <span>{n.type === 'quest' ? '📋' : n.type === 'item' ? '📦' : '🏗️'}</span>
                         <span className="text-gray-700">{getNodeTitle(n)}</span>
                       </button>
                     ))}
@@ -397,7 +483,7 @@ export default function GraphPage() {
                         `}
                       >
                         <span className="text-gray-400">{i + 1}.</span>
-                        <span>{n.type === 'quest' ? '📋' : '📦'}</span>
+                        <span>{n.type === 'quest' ? '📋' : n.type === 'item' ? '📦' : '🏗️'}</span>
                         <span className="truncate">{getNodeTitle(n)}</span>
                         {isNodeDone(n) && <span className="ml-auto">✓</span>}
                       </button>
@@ -417,7 +503,7 @@ export default function GraphPage() {
                         onClick={() => setSelectedNode(n)}
                         className="flex items-center gap-1.5 text-left rounded-lg bg-purple-50 px-2 py-1.5 hover:bg-purple-100 transition-colors text-purple-700"
                       >
-                        <span>{n.type === 'quest' ? '📋' : '📦'}</span>
+                        <span>{n.type === 'quest' ? '📋' : n.type === 'item' ? '📦' : '🏗️'}</span>
                         <span className="truncate">{getNodeTitle(n)}</span>
                       </button>
                     ))}
@@ -449,6 +535,25 @@ export default function GraphPage() {
                   </div>
                 ) : null
               })()}
+
+              {/* Used in buildings (items/quests) */}
+              {usedInBuildings.length > 0 && (
+                <div>
+                  <p className="font-semibold text-gray-500 mb-1.5">🏗️ Verwendet für Gebäude ({usedInBuildings.length})</p>
+                  <div className="flex flex-col gap-1">
+                    {usedInBuildings.map(b => (
+                      <button
+                        key={b.id}
+                        onClick={() => setSelectedNode(b)}
+                        className="flex items-center gap-1.5 text-left rounded-lg bg-teal-50 px-2 py-1.5 hover:bg-teal-100 transition-colors text-teal-700"
+                      >
+                        <span>🏗️</span>
+                        <span className="truncate">{b.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="px-4 py-3 border-t border-rose-50">
@@ -464,8 +569,13 @@ export default function GraphPage() {
       </div>
 
       {/* Create quest modal */}
-      {showCreateModal && (
-        <GraphCreateQuestModal onClose={() => setShowCreateModal(false)} />
+      {showCreateQuestModal && (
+        <GraphCreateQuestModal onClose={() => setShowCreateQuestModal(false)} />
+      )}
+
+      {/* Create building modal */}
+      {showCreateBuildingModal && (
+        <GraphCreateBuildingModal onClose={() => setShowCreateBuildingModal(false)} />
       )}
     </div>
   )

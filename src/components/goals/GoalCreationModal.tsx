@@ -64,11 +64,11 @@ export function GoalCreationModal({ open, onClose, node, allNodes }: GoalCreatio
     onClose()
   }
 
-  const nodeEmoji = node.type === 'quest' ? '📋' : '📦'
-  const nodeType  = node.type === 'quest' ? 'Quest' : 'Item'
+  const nodeEmoji = node.type === 'quest' ? '📋' : node.type === 'item' ? '📦' : '🏗️'
+  const nodeType  = node.type === 'quest' ? 'Quest' : node.type === 'item' ? 'Item' : 'Gebäude'
   const nodeMeta  = node.type === 'quest'
     ? `${node.category} · ${node.priority} Priorität`
-    : node.mod
+    : node.type === 'item' ? node.mod : node.location
 
   return (
     <Modal

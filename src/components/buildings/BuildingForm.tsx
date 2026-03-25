@@ -105,7 +105,11 @@ export function BuildingForm({ open, onClose, onSubmit, initialData }: BuildingF
   const handleSubmit = () => {
     if (!form.name.trim()) return
     // Keys are already in IndexedDB; just pass them through
-    onSubmit(form)
+    onSubmit({
+      ...form,
+      type: 'building',
+      dependencies: initialData?.dependencies ?? [],
+    })
     newKeysRef.current = [] // committed — don't clean up on close
     onClose()
   }

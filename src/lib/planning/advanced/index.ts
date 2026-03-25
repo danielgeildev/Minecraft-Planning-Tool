@@ -38,7 +38,8 @@ function scoreNode(
   inventory: InventoryItem[],
   totalRequired: number,
 ): { unlocksCount: number; effortScore: number; partialBonus: number; impactPercent: number } {
-  const effortScore = EFFORT_SCORE[node.effort ?? 'medium'] ?? 2
+  const effort = 'effort' in node ? node.effort : undefined
+  const effortScore = EFFORT_SCORE[effort ?? 'medium'] ?? 2
 
   // How many currently-locked required nodes become directly unlocked when this node is done?
   const unlocksCount = required.filter(n => {
@@ -106,7 +107,7 @@ export function getNextBestAction(
     reason = `Schaltet ${best.unlocksCount} weitere Schritte frei`
   } else if (best.unlocksCount === 1) {
     reason = `Schaltet den nächsten Schritt frei`
-  } else if (best.node.effort === 'low') {
+  } else if (('effort' in best.node ? best.node.effort : undefined) === 'low') {
     reason = `Günstigster nächster Schritt`
   } else if (best.partialBonus > 0) {
     reason = `Du hast bereits Materialien dafür`
@@ -114,12 +115,14 @@ export function getNextBestAction(
     reason = `Nächster verfügbarer Schritt`
   }
 
+  const bestEffort = 'effort' in best.node ? best.node.effort : undefined
+
   return {
     node:          best.node,
     reason,
     impactPercent: best.impactPercent,
     unlocksCount:  best.unlocksCount,
-    effortLevel:   best.node.effort,
+    effortLevel:   bestEffort,
     score:         best.score,
   }
 }

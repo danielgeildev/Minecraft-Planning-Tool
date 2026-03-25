@@ -12,12 +12,13 @@ interface BuildingStore {
 
   initializeIfNeeded: () => void
 
-  addBuilding:    (b: Omit<Building, 'id' | 'createdAt' | 'updatedAt'>) => void
+  addBuilding:    (b: Omit<Building, 'id' | 'type' | 'createdAt' | 'updatedAt'>) => void
   updateBuilding: (id: string, updates: Partial<Building>) => void
   deleteBuilding: (id: string) => void
   undoDelete:     () => void
 
-  getBuildingById: (id: string) => Building | undefined
+  getBuildingById:      (id: string) => Building | undefined
+  purgeDependenciesTo:  (nodeId: string) => void
 }
 
 const safeStorage = createJSONStorage(() =>
@@ -43,6 +44,7 @@ export const useBuildingStore = create<BuildingStore>()(
         const now = new Date().toISOString()
         const building: Building = {
           ...data,
+          type: 'building',
           id:        crypto.randomUUID(),
           createdAt: now,
           updatedAt: now,
@@ -75,6 +77,14 @@ export const useBuildingStore = create<BuildingStore>()(
       },
 
       getBuildingById: (id) => get().buildings.find(b => b.id === id),
+
+      purgeDependenciesTo: (nodeId) =>
+        set(s => ({
+          buildings: s.buildings.map(b => ({
+            ...b,
+            dependencies: (b.dependencies ?? []).filter(d => d.targetId !== nodeId),
+          })),
+        })),
     }),
     {
       name:          'atm10-buildings-v2',
@@ -84,6 +94,15 @@ export const useBuildingStore = create<BuildingStore>()(
         buildings:    s.buildings,
         _dataVersion: s._dataVersion,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.buildings = state.buildings.map(b => ({
+            ...b,
+            type: (b as Building).type ?? 'building',
+            dependencies: (b as Building).dependencies ?? [],
+          }))
+        }
+      },
     }
   )
 )

@@ -60,7 +60,7 @@ export interface InventoryItem {
   amount: number
 }
 
-export type AnyNode = QuestNode | ItemNode
+export type AnyNode = QuestNode | ItemNode | Building
 
 // ─── Goal ─────────────────────────────────────────────────────────────────────
 
@@ -72,18 +72,20 @@ export interface Goal {
   parentGoalId?: string   // set when this is a subgoal of another goal
 }
 
-// ─── Building (not in graph) ──────────────────────────────────────────────────
+// ─── Building ─────────────────────────────────────────────────────────────────
 
 export type BuildingStatus = 'planned' | 'in-progress' | 'done'
 
 export interface Building {
   id: string
+  type: 'building'
   name: string
   location: string
   style: string
   status: BuildingStatus
   requirements: string[]
   inspoPics: string[]
+  dependencies: Dependency[]
   notes: string
   createdAt: string
   updatedAt: string
@@ -92,9 +94,11 @@ export interface Building {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export function getNodeTitle(node: AnyNode): string {
-  return node.type === 'quest' ? node.title : node.name
+  if (node.type === 'quest') return node.title
+  return node.name  // items and buildings both have .name
 }
 
 export function isNodeDone(node: AnyNode): boolean {
+  if (node.type === 'building') return node.status === 'done'
   return node.status === 'done' || node.status === 'have'
 }
