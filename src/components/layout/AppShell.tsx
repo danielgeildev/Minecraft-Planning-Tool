@@ -7,6 +7,7 @@ import { useQuestStore }   from '@/store/useQuestStore'
 import { useBuildingStore } from '@/store/useBuildingStore'
 import { useItemStore }    from '@/store/useItemStore'
 import { useGoalStore }    from '@/store/useGoalStore'
+import { useNoteStore }    from '@/store/useNoteStore'
 
 interface AppShellProps {
   children: ReactNode
@@ -26,12 +27,14 @@ export function AppShell({ children }: AppShellProps) {
     useBuildingStore.persist.rehydrate()
     useItemStore.persist.rehydrate()
     useGoalStore.persist.rehydrate()
+    useNoteStore.persist.rehydrate()
 
     // 2. Load mock data only on very first run (_dataVersion === 0)
     useQuestStore.getState().initializeIfNeeded()
     useBuildingStore.getState().initializeIfNeeded()
     useItemStore.getState().initializeIfNeeded()
     useGoalStore.getState().initializeIfNeeded()
+    useNoteStore.getState().initializeIfNeeded()
   }, [])
 
   return (

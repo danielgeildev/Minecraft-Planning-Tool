@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Plus, X, ImagePlus } from 'lucide-react'
+import { Plus, X, ImagePlus, Search } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { BuildingImage } from '@/components/buildings/BuildingImage'
 import { saveImage, deleteImage, isDataUrl } from '@/lib/imageStorage'
-import type { Building, BuildingStatus } from '@/types'
+import type { Building, BuildingStatus, ItemNode } from '@/types'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024 // 5 MB
 
@@ -16,6 +16,7 @@ interface BuildingFormProps {
   onClose: () => void
   onSubmit: (data: Omit<Building, 'id' | 'createdAt' | 'updatedAt'>) => void
   initialData?: Building | null
+  allItems?: ItemNode[]
 }
 
 const emptyForm = {
@@ -28,19 +29,25 @@ const emptyForm = {
   notes: '',
 }
 
-export function BuildingForm({ open, onClose, onSubmit, initialData }: BuildingFormProps) {
-  const [form, setForm]         = useState(emptyForm)
-  const [newReq, setNewReq]     = useState('')
-  const [dragOver, setDragOver] = useState(false)
-  const [imageError, setImageError] = useState<string | null>(null)
+export function BuildingForm({ open, onClose, onSubmit, initialData, allItems = [] }: BuildingFormProps) {
+  const [form, setForm]               = useState(emptyForm)
+  const [linkedItemIds, setLinkedItemIds] = useState<string[]>([])
+  const [itemSearch, setItemSearch]   = useState('')
+  const [newReq, setNewReq]           = useState('')
+  const [dragOver, setDragOver]       = useState(false)
+  const [imageError, setImageError]   = useState<string | null>(null)
   // Track keys added during this session so we can clean up on cancel
   const newKeysRef = useRef<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // IDs of all known items (for filtering non-item deps on submit)
+  const allItemIdSet = new Set(allItems.map(i => i.id))
 
   useEffect(() => {
     if (open) {
       newKeysRef.current = []
       setImageError(null)
+      setItemSearch('')
       if (initialData) {
         setForm({
           name:         initialData.name,
@@ -51,12 +58,31 @@ export function BuildingForm({ open, onClose, onSubmit, initialData }: BuildingF
           inspoPics:    [...initialData.inspoPics],
           notes:        initialData.notes,
         })
+        // Populate linked items from existing requires-deps that point to known items
+        setLinkedItemIds(
+          initialData.dependencies
+            .filter(d => d.type === 'requires' && allItemIdSet.has(d.targetId))
+            .map(d => d.targetId)
+        )
       } else {
         setForm(emptyForm)
+        setLinkedItemIds([])
       }
       setNewReq('')
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData, open])
+
+  const toggleItem = (id: string) =>
+    setLinkedItemIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+
+  const filteredItems = allItems.filter(item =>
+    !itemSearch ||
+    item.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
+    item.mod.toLowerCase().includes(itemSearch.toLowerCase())
+  )
 
   const addRequirement = () => {
     const trimmed = newReq.trim()
@@ -104,11 +130,15 @@ export function BuildingForm({ open, onClose, onSubmit, initialData }: BuildingF
 
   const handleSubmit = () => {
     if (!form.name.trim()) return
-    // Keys are already in IndexedDB; just pass them through
+    // Preserve non-item deps (e.g. building→building from graph) + new item requires
+    const preservedDeps = (initialData?.dependencies ?? []).filter(
+      d => !(d.type === 'requires' && allItemIdSet.has(d.targetId))
+    )
+    const itemDeps = linkedItemIds.map(id => ({ targetId: id, type: 'requires' as const }))
     onSubmit({
       ...form,
       type: 'building',
-      dependencies: initialData?.dependencies ?? [],
+      dependencies: [...preservedDeps, ...itemDeps],
     })
     newKeysRef.current = [] // committed — don't clean up on close
     onClose()
@@ -194,6 +224,75 @@ export function BuildingForm({ open, onClose, onSubmit, initialData }: BuildingF
             </ul>
           )}
         </div>
+
+        {/* Linked Items */}
+        {allItems.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-700 dark:text-slate-300">
+                Verknüpfte Items
+                {linkedItemIds.length > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs bg-pink-100 dark:bg-pink-900 text-pink-500">{linkedItemIds.length}</span>
+                )}
+              </p>
+            </div>
+
+            {/* Selected items */}
+            {linkedItemIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {linkedItemIds.map(id => {
+                  const item = allItems.find(i => i.id === id)
+                  if (!item) return null
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900">
+                      📦 {item.name}
+                      <button onClick={() => toggleItem(id)} className="hover:text-red-400 transition-colors">
+                        <X size={10} />
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Search + list */}
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl border border-rose-200 dark:border-slate-600 px-3 py-2">
+              <Search size={13} className="text-gray-400 dark:text-slate-500 flex-shrink-0" />
+              <input
+                className="flex-1 text-sm outline-none placeholder-gray-400 dark:placeholder-slate-500 bg-transparent text-gray-800 dark:text-slate-100"
+                placeholder="Items suchen..."
+                value={itemSearch}
+                onChange={e => setItemSearch(e.target.value)}
+              />
+            </div>
+            <div className="max-h-40 overflow-y-auto flex flex-col gap-0.5 rounded-xl border border-rose-100 dark:border-slate-700 p-1">
+              {filteredItems.length === 0 ? (
+                <p className="text-xs text-gray-400 dark:text-slate-500 px-2 py-2 text-center">Keine Items gefunden</p>
+              ) : (
+                filteredItems.map(item => {
+                  const selected = linkedItemIds.includes(item.id)
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => toggleItem(item.id)}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors text-sm ${
+                        selected
+                          ? 'bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400'
+                          : 'hover:bg-rose-50 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300'
+                      }`}
+                    >
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? 'bg-pink-400 border-pink-400 text-white' : 'border-gray-300 dark:border-slate-500'}`}>
+                        {selected && <span className="text-xs leading-none">✓</span>}
+                      </span>
+                      <span className="flex-1 truncate">📦 {item.name}</span>
+                      <span className="text-xs text-gray-400 dark:text-slate-500 truncate max-w-20">{item.mod}</span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Screenshots / Inspo-Pics */}
         <div className="flex flex-col gap-2">

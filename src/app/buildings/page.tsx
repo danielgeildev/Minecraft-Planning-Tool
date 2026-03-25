@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { useBuildingStore } from '@/store/useBuildingStore'
+import { useItemStore } from '@/store/useItemStore'
 import { BuildingCard } from '@/components/buildings/BuildingCard'
 import { BuildingForm } from '@/components/buildings/BuildingForm'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -17,6 +18,7 @@ type FilterStatus = 'all' | BuildingStatus
 export default function BuildingsPage() {
   const { buildings, addBuilding, updateBuilding, deleteBuilding, undoDelete, lastDeleted } =
     useBuildingStore()
+  const { items } = useItemStore()
 
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Building | null>(null)
@@ -116,10 +118,10 @@ export default function BuildingsPage() {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-2 bg-white rounded-xl border border-rose-200 px-3 py-2 mb-4">
-        <Search size={14} className="text-gray-400 flex-shrink-0" />
+      <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl border border-rose-200 dark:border-slate-600 px-3 py-2 mb-4">
+        <Search size={14} className="text-gray-400 dark:text-slate-500 flex-shrink-0" />
         <input
-          className="flex-1 text-sm outline-none placeholder-gray-400 bg-transparent"
+          className="flex-1 text-sm outline-none placeholder-gray-400 dark:placeholder-slate-500 bg-transparent text-gray-800 dark:text-slate-100"
           placeholder="Gebäude suchen..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -158,6 +160,7 @@ export default function BuildingsPage() {
         onClose={handleFormClose}
         onSubmit={handleSubmit}
         initialData={editTarget}
+        allItems={items}
       />
 
       {/* Confirm delete dialog */}

@@ -62,6 +62,8 @@ html.dark .bg-emerald-50 { background-color: #0a1f12 !important; }
 html.dark .bg-purple-50  { background-color: #130d1f !important; }
 html.dark .bg-violet-50  { background-color: #120d1f !important; }
 html.dark .bg-blue-50    { background-color: #0d1525 !important; }
+html.dark .bg-teal-50    { background-color: #0a1f1a !important; }
+html.dark .bg-cyan-50    { background-color: #0a1c1f !important; }
 
 /* Borders */
 html.dark .border-rose-50    { border-color: #2d2038 !important; }
@@ -72,6 +74,8 @@ html.dark .border-amber-100  { border-color: #3d3020 !important; }
 html.dark .border-red-100    { border-color: #3d1a1a !important; }
 html.dark .border-emerald-100 { border-color: #1a3a26 !important; }
 html.dark .border-emerald-200 { border-color: #1a3a26 !important; }
+html.dark .border-teal-300    { border-color: #1a4a40 !important; }
+html.dark .border-cyan-200    { border-color: #1a3a40 !important; }
 
 /* Text */
 html.dark .text-gray-800 { color: #e6edf3 !important; }
@@ -81,9 +85,9 @@ html.dark .text-gray-500 { color: #8b949e !important; }
 html.dark .text-gray-400 { color: #6e7681 !important; }
 html.dark .text-gray-300 { color: #484f58 !important; }
 
-/* Form controls */
-html.dark input:not([type='file']):not([type='checkbox']):not([type='radio']),
-html.dark textarea,
+/* Form controls — exclude transparent inputs (search bars sit inside styled wrappers) */
+html.dark input:not([type='file']):not([type='checkbox']):not([type='radio']):not(.bg-transparent),
+html.dark textarea:not(.bg-transparent),
 html.dark select {
   background-color: #21262d !important;
   color: #e6edf3 !important;
@@ -99,6 +103,28 @@ html.dark textarea::placeholder {
 html.dark .react-flow__pane,
 html.dark .react-flow {
   background-color: #0d1117 !important;
+}
+
+/* React Flow minimap */
+html.dark .react-flow__minimap {
+  background-color: #1e2430 !important;
+}
+html.dark .react-flow__minimap-mask {
+  fill: rgba(13, 17, 23, 0.75) !important;
+}
+
+/* React Flow controls (zoom bar) */
+html.dark .react-flow__controls {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+html.dark .react-flow__controls-button {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  fill: #94a3b8 !important;
+}
+html.dark .react-flow__controls-button:hover {
+  background-color: #334155 !important;
 }
 
 /* Scrollbar */

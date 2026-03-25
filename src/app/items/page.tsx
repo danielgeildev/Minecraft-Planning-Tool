@@ -160,10 +160,10 @@ export default function ItemsPage() {
 
           {/* Search + mod filter */}
           <div className="flex gap-2 mb-6">
-            <div className="flex-1 flex items-center gap-2 bg-white rounded-xl border border-rose-200 px-3 py-2">
-              <Search size={14} className="text-gray-400 flex-shrink-0" />
+            <div className="flex-1 flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl border border-rose-200 dark:border-slate-600 px-3 py-2">
+              <Search size={14} className="text-gray-400 dark:text-slate-500 flex-shrink-0" />
               <input
-                className="flex-1 text-sm outline-none placeholder-gray-400 bg-transparent"
+                className="flex-1 text-sm outline-none placeholder-gray-400 dark:placeholder-slate-500 bg-transparent text-gray-800 dark:text-slate-100"
                 placeholder="Items oder Mods suchen..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -171,7 +171,7 @@ export default function ItemsPage() {
             </div>
             {allMods.length > 2 && (
               <select
-                className="rounded-xl border border-rose-200 bg-white px-2 py-2 text-xs outline-none focus:border-pink-400"
+                className="rounded-xl border border-rose-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-2 text-xs text-gray-800 dark:text-slate-100 outline-none focus:border-pink-400"
                 value={filterMod}
                 onChange={(e) => setFilterMod(e.target.value)}
               >

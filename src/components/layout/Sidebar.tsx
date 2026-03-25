@@ -11,6 +11,7 @@ const navItems = [
   { href: '/buildings',  label: 'Gebäude',        emoji: '🏗️' },
   { href: '/items',      label: 'Items',          emoji: '📦' },
   { href: '/graph',      label: 'Graph',          emoji: '🗺️' },
+  { href: '/notes',      label: 'Notizen',        emoji: '📝' },
   { href: '/settings',   label: 'Einstellungen',  emoji: '⚙️' },
 ]
 

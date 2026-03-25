@@ -7,6 +7,7 @@ import type { ItemNode, ItemStatus, AnyNode } from '@/types'
 import { getNodeTitle } from '@/types'
 import { getFullDependencyTree } from '@/lib/progression'
 import { useGoalStore } from '@/store/useGoalStore'
+import { RelatedNotes } from '@/components/notes/RelatedNotes'
 
 const statusConfig: Record<ItemStatus, { label: string; variant: 'red' | 'amber' | 'green'; emoji: string }> = {
   needed:     { label: 'Gesucht',      variant: 'red',   emoji: '🔍' },
@@ -189,6 +190,8 @@ export function ItemDetail({ item, allNodes, onClose, onEdit, onStatusChange, on
             <p className="text-sm text-gray-600 whitespace-pre-wrap">{item.notes}</p>
           </div>
         )}
+
+        <RelatedNotes nodeId={item.id} />
       </div>
 
       <div className="px-5 py-4 border-t border-rose-50">

@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { BuildingImage } from '@/components/buildings/BuildingImage'
 import type { Building, BuildingStatus } from '@/types'
+import { RelatedNotes } from '@/components/notes/RelatedNotes'
+import { useItemStore } from '@/store/useItemStore'
 
 const statusConfig: Record<BuildingStatus, { label: string; variant: 'gray' | 'amber' | 'green' }> = {
   planned:     { label: 'Geplant',  variant: 'gray'  },
@@ -22,6 +24,12 @@ interface BuildingCardProps {
 
 export function BuildingCard({ building, onEdit, onDelete, onStatusChange }: BuildingCardProps) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const items = useItemStore(s => s.items)
+
+  const linkedItems = building.dependencies
+    .filter(d => d.type === 'requires')
+    .map(d => items.find(i => i.id === d.targetId))
+    .filter((i): i is NonNullable<typeof i> => !!i)
 
   const status = statusConfig[building.status]
   const nextStatus: BuildingStatus =
@@ -111,12 +119,35 @@ export function BuildingCard({ building, onEdit, onDelete, onStatusChange }: Bui
           </div>
         )}
 
+        {/* Linked Items */}
+        {linkedItems.length > 0 && (
+          <div className="mt-3">
+            <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-1.5">📦 Verknüpfte Items</p>
+            <div className="flex flex-wrap gap-1">
+              {linkedItems.map(item => (
+                <span
+                  key={item.id}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${
+                    item.status === 'have'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-900 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-purple-50 dark:bg-purple-950/40 border-purple-100 dark:border-purple-900 text-purple-600 dark:text-purple-400'
+                  }`}
+                >
+                  {item.status === 'have' ? '✅' : '📦'} {item.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Notes */}
         {building.notes && (
           <p className="mt-3 text-xs text-gray-400 italic border-t border-rose-50 pt-2">
             {building.notes}
           </p>
         )}
+
+        <RelatedNotes nodeId={building.id} />
       </div>
 
       {/* Lightbox */}

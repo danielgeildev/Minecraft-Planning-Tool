@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import type { QuestNode, QuestStatus } from '@/types'
 import { useGoalStore } from '@/store/useGoalStore'
+import { RelatedNotes } from '@/components/notes/RelatedNotes'
 
 const statusConfig: Record<QuestStatus, { label: string; variant: 'gray' | 'amber' | 'green' }> = {
   open:          { label: 'Offen',       variant: 'gray'  },
@@ -121,6 +122,7 @@ export function QuestCard({
           </Button>
         </div>
       </div>
+      <RelatedNotes nodeId={quest.id} />
     </div>
   )
 }
