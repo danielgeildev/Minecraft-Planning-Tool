@@ -153,7 +153,7 @@ export default function SettingsPage() {
     useGoalStore.setState({ goals, _dataVersion: 2 })
     useInventoryStore.setState({ inventory })
     if (notes) useNoteStore.setState({ notes, _dataVersion: 2 })
-    if (unlockedIds) useAchievementStore.setState({ unlockedIds })
+    if (unlockedIds) useAchievementStore.setState({ unlockedIds, seenIds: [] })
 
     setPendingBackup(null)
     setImportSuccess(true)
@@ -173,7 +173,7 @@ export default function SettingsPage() {
     useGoalStore.setState({ goals: [], _dataVersion: 2 })
     useInventoryStore.setState({ inventory: [] })
     useNoteStore.setState({ notes: [], _dataVersion: 2 })
-    useAchievementStore.setState({ unlockedIds: [], pendingQueue: [] })
+    useAchievementStore.setState({ unlockedIds: [], seenIds: [], pendingQueue: [] })
 
     if (imageKeys.length > 0) await deleteImages(imageKeys)
 

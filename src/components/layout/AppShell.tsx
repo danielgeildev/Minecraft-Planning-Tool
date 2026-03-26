@@ -34,6 +34,9 @@ export function AppShell({ children }: AppShellProps) {
     useSettingsStore.persist.rehydrate()
     useAchievementStore.persist.rehydrate()
 
+    // 1b. Queue any already-unlocked achievements the user hasn't seen a toast for yet
+    useAchievementStore.getState().queueUnseen()
+
     // 2. Load mock data only on very first run (_dataVersion === 0)
     useQuestStore.getState().initializeIfNeeded()
     useBuildingStore.getState().initializeIfNeeded()
