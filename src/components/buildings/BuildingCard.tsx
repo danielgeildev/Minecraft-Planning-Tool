@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Pencil, Trash2, MapPin, Palette, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { triggerConfetti } from '@/lib/confetti'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { BuildingImage } from '@/components/buildings/BuildingImage'
@@ -97,7 +98,7 @@ export function BuildingCard({ building, onEdit, onDelete, onStatusChange }: Bui
         <div className="mt-3 flex items-center gap-2">
           <Badge variant={status.variant}>{status.label}</Badge>
           <button
-            onClick={() => onStatusChange(building.id, nextStatus)}
+            onClick={(e) => { onStatusChange(building.id, nextStatus); if (nextStatus === 'done') triggerConfetti(e.clientX, e.clientY, 100) }}
             className="text-xs text-pink-500 hover:text-pink-600 transition-colors"
           >
             → {statusConfig[nextStatus].label}

@@ -188,6 +188,7 @@ export default function QuestsPage() {
               key={quest.id}
               quest={quest}
               blockedDeps={getBlockedDependencies(quest.id, allNodes) as QuestNode[]}
+              unlocksCount={quests.filter(q => q.dependencies.some(d => d.targetId === quest.id)).length}
               childCount={getChildren(quest.id).length}
               isUnlocked={isUnlocked(quest.id, allNodes)}
               onEdit={handleEdit}

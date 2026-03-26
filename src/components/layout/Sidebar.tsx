@@ -3,6 +3,9 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
+import { useQuestStore }    from '@/store/useQuestStore'
+import { useNoteStore }     from '@/store/useNoteStore'
+import { useBuildingStore } from '@/store/useBuildingStore'
 
 const navItems = [
   { href: '/',           label: 'Dashboard',      emoji: '🏠' },
@@ -13,6 +16,7 @@ const navItems = [
   { href: '/items',      label: 'Items',          emoji: '📦' },
   { href: '/graph',      label: 'Graph',          emoji: '🗺️' },
   { href: '/notes',      label: 'Notizen',        emoji: '📝' },
+  { href: '/timeline',   label: 'Timeline',       emoji: '📅' },
   { href: '/settings',   label: 'Einstellungen',  emoji: '⚙️' },
 ]
 
@@ -23,6 +27,16 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname()
+
+  const activeQuests    = useQuestStore(s => s.quests.filter(q => q.status === 'in-progress').length)
+  const activeBuildings = useBuildingStore(s => s.buildings.filter(b => b.status === 'in-progress').length)
+  const noteCount       = useNoteStore(s => s.notes.length)
+
+  const badges: Record<string, number> = {
+    '/quests':    activeQuests,
+    '/buildings': activeBuildings,
+    '/notes':     noteCount,
+  }
 
   return (
     <>
@@ -37,7 +51,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         className={`
           fixed top-0 left-0 z-50 h-full w-64 bg-white dark:bg-slate-900 border-r border-rose-100 dark:border-slate-700
           flex flex-col transition-transform duration-300 ease-in-out
-          lg:translate-x-0 lg:static lg:z-auto
+          lg:translate-x-0 lg:static lg:z-auto lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto
           ${open ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
@@ -78,7 +92,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               >
                 <span className="text-base">{emoji}</span>
                 <span>{label}</span>
-                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-pink-400" />}
+                <span className="ml-auto flex items-center gap-1.5">
+                  {badges[href] > 0 && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none
+                      ${isActive ? 'bg-pink-200 dark:bg-pink-800 text-pink-700 dark:text-pink-200' : 'bg-rose-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400'}`}>
+                      {badges[href]}
+                    </span>
+                  )}
+                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-pink-400" />}
+                </span>
               </Link>
             )
           })}
