@@ -9,6 +9,7 @@ import { useBuildingStore } from '@/store/useBuildingStore'
 
 const navItems = [
   { href: '/',           label: 'Dashboard',      emoji: '🏠' },
+  { href: '/progress',   label: 'Fortschritt',    emoji: '✨' },
   { href: '/spielplan',  label: 'Spielplan',      emoji: '⚡' },
   { href: '/goals',      label: 'Ziele',          emoji: '🎯' },
   { href: '/quests',     label: 'Quests',         emoji: '📋' },

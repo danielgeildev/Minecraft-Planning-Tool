@@ -13,28 +13,32 @@ import { useNoteStore }          from '@/store/useNoteStore'
 import { useInventoryStore }     from '@/store/useInventoryStore'
 import { useSettingsStore }      from '@/store/useSettingsStore'
 import { useAchievementStore }   from '@/store/useAchievementStore'
+import { useProgressStore }      from '@/store/useProgressStore'
 import { Button }                from '@/components/ui/Button'
 import { ConfirmDialog }         from '@/components/ui/ConfirmDialog'
 import { ACHIEVEMENTS, RARITY_ORDER, RARITY_CONFIG } from '@/lib/achievements'
 import type { QuestNode, ItemNode, Building, Goal, InventoryItem } from '@/types'
 import type { NoteNode } from '@/types/note'
+import type { XpLogEntry } from '@/store/useProgressStore'
 
 // ─── Backup schema ────────────────────────────────────────────────────────────
 
-const BACKUP_VERSION = 3
+const BACKUP_VERSION = 4
 
 interface BackupData {
   version:    number
   exportedAt: string
   appVersion: string
   data: {
-    quests:      QuestNode[]
-    items:       ItemNode[]
-    buildings:   Building[]
-    goals:       Goal[]
-    inventory:   InventoryItem[]
-    notes:       NoteNode[]
-    unlockedIds: string[]
+    quests:       QuestNode[]
+    items:        ItemNode[]
+    buildings:    Building[]
+    goals:        Goal[]
+    inventory:    InventoryItem[]
+    notes:        NoteNode[]
+    unlockedIds:  string[]
+    progressXp?:  number
+    progressLog?: XpLogEntry[]
   }
 }
 
@@ -103,6 +107,8 @@ export default function SettingsPage() {
         inventory:   useInventoryStore.getState().inventory,
         notes:       useNoteStore.getState().notes,
         unlockedIds: useAchievementStore.getState().unlockedIds,
+        progressXp:  useProgressStore.getState().totalXp,
+        progressLog: useProgressStore.getState().xpLog,
       },
     }
 
@@ -156,6 +162,15 @@ export default function SettingsPage() {
     if (notes) useNoteStore.setState({ notes, _dataVersion: 2 })
     if (unlockedIds) useAchievementStore.setState({ unlockedIds, seenIds: [] })
 
+    // Restore progress data if present
+    const backupAny = pendingBackup.data as Record<string, unknown>
+    if (Array.isArray(backupAny.progressLog)) {
+      useProgressStore.setState({
+        totalXp: typeof backupAny.progressXp === 'number' ? backupAny.progressXp : 0,
+        xpLog: backupAny.progressLog,
+      })
+    }
+
     setPendingBackup(null)
     setImportSuccess(true)
   }
@@ -175,6 +190,7 @@ export default function SettingsPage() {
     useInventoryStore.setState({ inventory: [] })
     useNoteStore.setState({ notes: [], _dataVersion: 2 })
     useAchievementStore.setState({ unlockedIds: [], seenIds: [], pendingQueue: [] })
+    useProgressStore.setState({ totalXp: 0, xpLog: [], pendingXpToasts: [], pendingLevelUp: null })
 
     if (imageKeys.length > 0) await deleteImages(imageKeys)
 

@@ -12,6 +12,7 @@ import { Badge }               from '@/components/ui/Badge'
 import { getNodeTitle, type AnyNode } from '@/types'
 import { getGoalProgress, getNextStepsForGoal } from '@/lib/planning'
 import { ACHIEVEMENTS, RARITY_CONFIG }          from '@/lib/achievements'
+import { ProgressWidget }                       from '@/components/progression/ProgressWidget'
 
 function StatCard({ emoji, label, value, sub, href }: {
   emoji: string; label: string; value: number; sub: string; href: string
@@ -99,6 +100,11 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Hallo {playerName}! 🌸</h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Dein ATM10 Fortschritts-Dashboard</p>
         </div>
+      </div>
+
+      {/* XP Progress Widget */}
+      <div className="mb-6">
+        <ProgressWidget />
       </div>
 
       {/* Progress banner */}

@@ -10,6 +10,8 @@ export interface AchievementCheckInput {
   notes:       NoteNode[]
   goals:       Goal[]
   unlockedIds: string[]
+  totalXp?:    number
+  level?:      number
 }
 
 export interface Achievement {
@@ -538,6 +540,184 @@ export const ACHIEVEMENTS: Achievement[] = [
       const done = targets.filter(a => unlockedIds.includes(a.id)).length
       return `${done}/${targets.length} Achievements`
     },
+  },
+
+  // ─── Mob-Level Tier Achievements ──────────────────────────────────────────────
+
+  // Nature Tier (Levels 1–5)
+  {
+    id: 'tier-nature-start',
+    emoji: '🐔',
+    title: 'Existenzbestätigung',
+    description: 'Level 2 erreicht. Du bist offiziell mehr als ein Huhn.',
+    rarity: 'common',
+    check: ({ level }) => (level ?? 0) >= 2,
+    progressText: ({ level }) => `Level ${level ?? 1}/2`,
+  },
+  {
+    id: 'tier-nature-complete',
+    emoji: '🐰',
+    title: 'Natürliche Selektion überlebt',
+    description: 'Level 5 erreicht. Darwin wäre enttäuscht, aber hey.',
+    rarity: 'common',
+    check: ({ level }) => (level ?? 0) >= 5,
+    progressText: ({ level }) => `Level ${level ?? 1}/5`,
+  },
+
+  // Undead Tier (Levels 6–10)
+  {
+    id: 'tier-undead-start',
+    emoji: '🧟',
+    title: 'Untot und trotzdem busy',
+    description: 'Level 6 erreicht. Dein Gehirn ist optional, dein Grind nicht.',
+    rarity: 'rare',
+    check: ({ level }) => (level ?? 0) >= 6,
+    progressText: ({ level }) => `Level ${level ?? 1}/6`,
+  },
+  {
+    id: 'tier-undead-mid',
+    emoji: '🕷️',
+    title: 'Klebt überall',
+    description: 'Level 8 erreicht. Du hast dich festgebissen wie eine Spinne an der Decke.',
+    rarity: 'rare',
+    check: ({ level }) => (level ?? 0) >= 8,
+    progressText: ({ level }) => `Level ${level ?? 1}/8`,
+  },
+  {
+    id: 'tier-undead-complete',
+    emoji: '🧊',
+    title: 'Lost mit Selbstvertrauen',
+    description: 'Level 10 erreicht. Du weißt nicht wo du bist, aber du bist überzeugt.',
+    rarity: 'rare',
+    check: ({ level }) => (level ?? 0) >= 10,
+    progressText: ({ level }) => `Level ${level ?? 1}/10`,
+  },
+
+  // Fantasy Tier (Levels 11–15)
+  {
+    id: 'tier-fantasy-start',
+    emoji: '💥',
+    title: 'Tick, Tick, Boom',
+    description: 'Level 11 erreicht. Ab jetzt bist du eine Gefahr für alle — inklusive dir selbst.',
+    rarity: 'epic',
+    check: ({ level }) => (level ?? 0) >= 11,
+    progressText: ({ level }) => `Level ${level ?? 1}/11`,
+  },
+  {
+    id: 'tier-fantasy-mid',
+    emoji: '🔥',
+    title: 'Dauerhaft am Brennen',
+    description: 'Level 13 erreicht. Burnout oder Fortschritt? Ja.',
+    rarity: 'epic',
+    check: ({ level }) => (level ?? 0) >= 13,
+    progressText: ({ level }) => `Level ${level ?? 1}/13`,
+  },
+  {
+    id: 'tier-fantasy-complete',
+    emoji: '🧙‍♀️',
+    title: 'Experimentierfreudig',
+    description: 'Level 15 erreicht. Deine Methoden sind fragwürdig, aber die Ergebnisse… naja.',
+    rarity: 'epic',
+    check: ({ level }) => (level ?? 0) >= 15,
+    progressText: ({ level }) => `Level ${level ?? 1}/15`,
+  },
+
+  // Boss Tier (Levels 16–20)
+  {
+    id: 'tier-boss-start',
+    emoji: '🐗',
+    title: 'Hirn abgegeben',
+    description: 'Level 16 erreicht. Strategie? Nein. Einfach drauf. Funktioniert irgendwie.',
+    rarity: 'legendary',
+    check: ({ level }) => (level ?? 0) >= 16,
+    progressText: ({ level }) => `Level ${level ?? 1}/16`,
+  },
+  {
+    id: 'tier-boss-mid',
+    emoji: '🐉',
+    title: 'Chaos mit Ego',
+    description: 'Level 17 erreicht. Der Ender Dragon ist beeindruckt. Von sich selbst, aber trotzdem.',
+    rarity: 'legendary',
+    check: ({ level }) => (level ?? 0) >= 17,
+    progressText: ({ level }) => `Level ${level ?? 1}/17`,
+  },
+  {
+    id: 'tier-boss-complete',
+    emoji: '👹',
+    title: 'Blinder Boss',
+    description: 'Level 20 erreicht. Du siehst nichts, verstehst nichts — und bist trotzdem hier.',
+    rarity: 'legendary',
+    check: ({ level }) => (level ?? 0) >= 20,
+    progressText: ({ level }) => `Level ${level ?? 1}/20`,
+  },
+
+  // Transcend Tier (Level 21)
+  {
+    id: 'tier-transcend',
+    emoji: '🐣',
+    title: 'Der Kreis schließt sich',
+    description: 'Level 21. Alles gemeistert, alles erreicht… und du bist ein Baby-Huhn. Perfekt.',
+    rarity: 'mythic',
+    secret: true,
+    check: ({ level }) => (level ?? 0) >= 21,
+    progressText: ({ level }) => `Level ${level ?? 1}/21`,
+  },
+
+  // XP Milestone Achievements
+  {
+    id: 'xp-100',
+    emoji: '⚡',
+    title: 'Erste Funken',
+    description: '100 XP gesammelt. Die Reise hat begonnen!',
+    rarity: 'common',
+    check: ({ totalXp }) => (totalXp ?? 0) >= 100,
+    progressText: ({ totalXp }) => `${totalXp ?? 0}/100 XP`,
+  },
+  {
+    id: 'xp-500',
+    emoji: '✨',
+    title: 'Sternschnuppe',
+    description: '500 XP gesammelt. Du leuchtest… ein bisschen.',
+    rarity: 'rare',
+    check: ({ totalXp }) => (totalXp ?? 0) >= 500,
+    progressText: ({ totalXp }) => `${totalXp ?? 0}/500 XP`,
+  },
+  {
+    id: 'xp-1000',
+    emoji: '🌟',
+    title: 'Tausenderin',
+    description: '1000 XP. Vier Stellen! Das ist… mehr als erwartet.',
+    rarity: 'rare',
+    check: ({ totalXp }) => (totalXp ?? 0) >= 1000,
+    progressText: ({ totalXp }) => `${totalXp ?? 0}/1.000 XP`,
+  },
+  {
+    id: 'xp-3000',
+    emoji: '💫',
+    title: 'XP-Maschine',
+    description: '3000 XP. Du sammelst XP wie andere Leute Staub.',
+    rarity: 'epic',
+    check: ({ totalXp }) => (totalXp ?? 0) >= 3000,
+    progressText: ({ totalXp }) => `${totalXp ?? 0}/3.000 XP`,
+  },
+  {
+    id: 'xp-7000',
+    emoji: '🔮',
+    title: 'XP-Schwarzes Loch',
+    description: '7000 XP. Du ziehst XP an wie ein Magnet. Ein sehr fleißiger Magnet.',
+    rarity: 'legendary',
+    check: ({ totalXp }) => (totalXp ?? 0) >= 7000,
+    progressText: ({ totalXp }) => `${totalXp ?? 0}/7.000 XP`,
+  },
+  {
+    id: 'xp-11300',
+    emoji: '🌈',
+    title: 'XP-Göttin',
+    description: '11.300 XP. Maximale XP-Stufe. Du bist buchstäblich am Ende. Im guten Sinne.',
+    rarity: 'mythic',
+    secret: true,
+    check: ({ totalXp }) => (totalXp ?? 0) >= 11300,
+    progressText: ({ totalXp }) => `${totalXp ?? 0}/11.300 XP`,
   },
 
   // ─── Mythic (Secret) ─────────────────────────────────────────────────────────

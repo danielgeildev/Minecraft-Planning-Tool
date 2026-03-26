@@ -4,6 +4,8 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { Menu } from 'lucide-react'
 import { Sidebar }              from './Sidebar'
 import { AchievementToast }     from '@/components/ui/AchievementToast'
+import { XpToast }              from '@/components/ui/XpToast'
+import { LevelUpModal }         from '@/components/ui/LevelUpModal'
 import { useQuestStore }        from '@/store/useQuestStore'
 import { useBuildingStore }     from '@/store/useBuildingStore'
 import { useItemStore }         from '@/store/useItemStore'
@@ -11,6 +13,9 @@ import { useGoalStore }         from '@/store/useGoalStore'
 import { useNoteStore }         from '@/store/useNoteStore'
 import { useSettingsStore }     from '@/store/useSettingsStore'
 import { useAchievementStore }  from '@/store/useAchievementStore'
+import { useProgressStore }     from '@/store/useProgressStore'
+import { initXpTracking }       from '@/lib/progression/xpTracker'
+import { getLevelFromXp }       from '@/lib/progression/xp'
 
 interface AppShellProps {
   children: ReactNode
@@ -33,6 +38,7 @@ export function AppShell({ children }: AppShellProps) {
     useNoteStore.persist.rehydrate()
     useSettingsStore.persist.rehydrate()
     useAchievementStore.persist.rehydrate()
+    useProgressStore.persist.rehydrate()
 
     // 1b. Queue any already-unlocked achievements the user hasn't seen a toast for yet
     useAchievementStore.getState().queueUnseen()
@@ -46,6 +52,7 @@ export function AppShell({ children }: AppShellProps) {
 
     // 3. Check achievements once after hydration
     const checkNow = () => {
+      const totalXp = useProgressStore.getState().totalXp
       useAchievementStore.getState().checkAndUnlock({
         quests:      useQuestStore.getState().quests,
         items:       useItemStore.getState().items,
@@ -53,6 +60,8 @@ export function AppShell({ children }: AppShellProps) {
         notes:       useNoteStore.getState().notes,
         goals:       useGoalStore.getState().goals,
         unlockedIds: useAchievementStore.getState().unlockedIds,
+        totalXp,
+        level:       getLevelFromXp(totalXp),
       })
     }
     checkNow()
@@ -63,6 +72,10 @@ export function AppShell({ children }: AppShellProps) {
     const unsubBuildings = useBuildingStore.subscribe(checkNow)
     const unsubNotes     = useNoteStore.subscribe(checkNow)
     const unsubGoals     = useGoalStore.subscribe(checkNow)
+    const unsubProgress  = useProgressStore.subscribe(checkNow)
+
+    // 5. Start XP tracking (subscribes to store changes)
+    const unsubXp = initXpTracking()
 
     return () => {
       unsubQuests()
@@ -70,6 +83,8 @@ export function AppShell({ children }: AppShellProps) {
       unsubBuildings()
       unsubNotes()
       unsubGoals()
+      unsubProgress()
+      unsubXp()
     }
   }, [])
 
@@ -98,6 +113,8 @@ export function AppShell({ children }: AppShellProps) {
       </div>
 
       <AchievementToast />
+      <XpToast />
+      <LevelUpModal />
     </div>
   )
 }
