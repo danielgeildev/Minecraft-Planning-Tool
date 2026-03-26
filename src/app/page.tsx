@@ -2,39 +2,32 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
-import { useQuestStore }   from '@/store/useQuestStore'
-import { useBuildingStore } from '@/store/useBuildingStore'
-import { useItemStore }    from '@/store/useItemStore'
-import { useGoalStore }    from '@/store/useGoalStore'
-import { Badge } from '@/components/ui/Badge'
+import { useQuestStore }       from '@/store/useQuestStore'
+import { useBuildingStore }    from '@/store/useBuildingStore'
+import { useItemStore }        from '@/store/useItemStore'
+import { useGoalStore }        from '@/store/useGoalStore'
+import { useSettingsStore }    from '@/store/useSettingsStore'
+import { useAchievementStore } from '@/store/useAchievementStore'
+import { Badge }               from '@/components/ui/Badge'
 import { getNodeTitle, type AnyNode } from '@/types'
 import { getGoalProgress, getNextStepsForGoal } from '@/lib/planning'
+import { ACHIEVEMENTS, RARITY_CONFIG }          from '@/lib/achievements'
 
-function StatCard({
-  emoji,
-  label,
-  value,
-  sub,
-  href,
-}: {
-  emoji: string
-  label: string
-  value: number
-  sub: string
-  href: string
+function StatCard({ emoji, label, value, sub, href }: {
+  emoji: string; label: string; value: number; sub: string; href: string
 }) {
   return (
     <Link
       href={href}
-      className="bg-white rounded-2xl border border-rose-100 p-4 shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-4"
+      className="bg-white dark:bg-slate-800 rounded-2xl border border-rose-100 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-all duration-200 flex items-center gap-4"
     >
-      <div className="w-11 h-11 rounded-xl bg-rose-50 flex items-center justify-center text-xl flex-shrink-0">
+      <div className="w-11 h-11 rounded-xl bg-rose-50 dark:bg-slate-700 flex items-center justify-center text-xl flex-shrink-0">
         {emoji}
       </div>
       <div>
-        <p className="text-2xl font-bold text-gray-800">{value}</p>
-        <p className="text-xs font-medium text-gray-600">{label}</p>
-        <p className="text-xs text-gray-400">{sub}</p>
+        <p className="text-2xl font-bold text-gray-800 dark:text-slate-100">{value}</p>
+        <p className="text-xs font-medium text-gray-600 dark:text-slate-300">{label}</p>
+        <p className="text-xs text-gray-400 dark:text-slate-500">{sub}</p>
       </div>
     </Link>
   )
@@ -45,94 +38,92 @@ export default function DashboardPage() {
   const buildings = useBuildingStore((s) => s.buildings)
   const items     = useItemStore((s) => s.items)
   const { goals } = useGoalStore()
+  const playerName   = useSettingsStore(s => s.playerName)
+  const unlockedIds    = useAchievementStore(s => s.unlockedIds)
+  const manualUnlock   = useAchievementStore(s => s.manualUnlock)
 
   const allNodes: AnyNode[] = useMemo(() => [...quests, ...items], [quests, items])
 
   const questStats = {
-    total: quests.length,
-    done: quests.filter((q) => q.status === 'done').length,
-    inProgress: quests.filter((q) => q.status === 'in-progress').length,
-    open: quests.filter((q) => q.status === 'open').length,
+    total:      quests.length,
+    done:       quests.filter(q => q.status === 'done').length,
+    inProgress: quests.filter(q => q.status === 'in-progress').length,
+    open:       quests.filter(q => q.status === 'open').length,
   }
-
   const buildingStats = {
-    total: buildings.length,
-    done: buildings.filter((b) => b.status === 'done').length,
-    inProgress: buildings.filter((b) => b.status === 'in-progress').length,
+    total:      buildings.length,
+    done:       buildings.filter(b => b.status === 'done').length,
+    inProgress: buildings.filter(b => b.status === 'in-progress').length,
   }
-
   const itemStats = {
-    total: items.length,
-    have: items.filter((i) => i.status === 'have').length,
-    needed: items.filter((i) => i.status === 'needed').length,
+    total:  items.length,
+    have:   items.filter(i => i.status === 'have').length,
+    needed: items.filter(i => i.status === 'needed').length,
   }
 
-  const recentQuests = quests
-    .filter((q) => q.status !== 'done')
-    .sort((a, b) => {
-      const pOrder = { high: 0, medium: 1, low: 2 }
-      return pOrder[a.priority] - pOrder[b.priority]
-    })
-    .slice(0, 5)
+  const recentQuests = useMemo(() =>
+    quests
+      .filter(q => q.status !== 'done')
+      .sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] - { high: 0, medium: 1, low: 2 }[b.priority]))
+      .slice(0, 5),
+    [quests],
+  )
+  const recentItems = useMemo(() => items.filter(i => i.status !== 'have').slice(0, 5), [items])
 
-  const recentItems = items.filter((i) => i.status !== 'have').slice(0, 5)
+  // Last 3 unlocked achievements (most recent first)
+  const recentAchievements = useMemo(() =>
+    [...unlockedIds]
+      .reverse()
+      .slice(0, 3)
+      .map(id => ACHIEVEMENTS.find(a => a.id === id))
+      .filter(Boolean) as typeof ACHIEVEMENTS,
+    [unlockedIds],
+  )
 
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto lg:max-w-none lg:px-8">
+
       {/* Hero */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Hallo Alina! 🌸</h1>
-        <p className="text-sm text-gray-500 mt-1">Dein ATM10 Fortschritts-Dashboard</p>
+      <div className="mb-6 flex items-center gap-4">
+        <a
+          href="https://www.youtube.com/watch?v=xvFZjo5PgG0"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => manualUnlock('felix-lover')}
+          className="flex-shrink-0 w-20 h-20 rounded-2xl bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-950 dark:to-rose-950 border border-rose-200 dark:border-rose-800 shadow-sm overflow-hidden flex items-center justify-center hover:scale-105 hover:shadow-md transition-transform duration-200"
+        >
+          <img src="/filbert-filibert.gif" alt="Felix" className="w-full h-full object-contain" draggable={false} />
+        </a>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Hallo {playerName}! 🌸</h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Dein ATM10 Fortschritts-Dashboard</p>
+        </div>
       </div>
 
       {/* Progress banner */}
-      <div className="mb-6 rounded-2xl bg-gradient-to-r from-pink-400 to-rose-400 p-4 text-white shadow-sm">
+      <div className="mb-6 rounded-2xl bg-gradient-to-r from-pink-400 to-rose-400 dark:from-pink-700 dark:to-rose-800 p-4 text-white shadow-sm">
         <p className="text-xs font-medium opacity-80 mb-1">Gesamt-Fortschritt</p>
-        <p className="text-lg font-bold">
-          {questStats.done}/{questStats.total} Quests erledigt
-        </p>
+        <p className="text-lg font-bold">{questStats.done}/{questStats.total} Quests erledigt</p>
         <div className="mt-2 h-2 rounded-full bg-white/30">
           <div
             className="h-2 rounded-full bg-white transition-all duration-500"
-            style={{
-              width: questStats.total
-                ? `${(questStats.done / questStats.total) * 100}%`
-                : '0%',
-            }}
+            style={{ width: questStats.total ? `${(questStats.done / questStats.total) * 100}%` : '0%' }}
           />
         </div>
       </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
-        <StatCard
-          emoji="📋"
-          label="Aktive Quests"
-          value={questStats.inProgress}
-          sub={`${questStats.open} offen · ${questStats.done} erledigt`}
-          href="/quests"
-        />
-        <StatCard
-          emoji="🏗️"
-          label="Gebäude im Bau"
-          value={buildingStats.inProgress}
-          sub={`${buildingStats.total - buildingStats.done} aktiv · ${buildingStats.done} fertig`}
-          href="/buildings"
-        />
-        <StatCard
-          emoji="📦"
-          label="Items gesucht"
-          value={itemStats.needed}
-          sub={`${itemStats.have} habe ich · ${itemStats.total} total`}
-          href="/items"
-        />
+        <StatCard emoji="📋" label="Aktive Quests"   value={questStats.inProgress} sub={`${questStats.open} offen · ${questStats.done} erledigt`}                    href="/quests"    />
+        <StatCard emoji="🏗️" label="Gebäude im Bau"  value={buildingStats.inProgress} sub={`${buildingStats.total - buildingStats.done} aktiv · ${buildingStats.done} fertig`} href="/buildings" />
+        <StatCard emoji="📦" label="Items gesucht"   value={itemStats.needed}      sub={`${itemStats.have} habe ich · ${itemStats.total} total`}                      href="/items"     />
       </div>
 
       {/* Goals widget */}
       {goals.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">🎯 Aktive Ziele</h2>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">🎯 Aktive Ziele</h2>
             <Link href="/goals" className="text-xs text-pink-500 hover:text-pink-600">Alle →</Link>
           </div>
           <div className="flex flex-col gap-3">
@@ -142,22 +133,19 @@ export default function DashboardPage() {
               const progress  = getGoalProgress(goal.targetNodeId, allNodes)
               const nextSteps = getNextStepsForGoal(goal.targetNodeId, allNodes).slice(0, 2)
               return (
-                <div key={goal.id} className="bg-white rounded-xl border border-rose-100 p-3">
+                <div key={goal.id} className="bg-white dark:bg-slate-800 rounded-xl border border-rose-100 dark:border-slate-700 p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-base">🎯</span>
-                    <span className="text-sm font-semibold text-gray-800 flex-1 truncate">{getNodeTitle(targetNode)}</span>
+                    <span className="text-sm font-semibold text-gray-800 dark:text-slate-100 flex-1 truncate">{getNodeTitle(targetNode)}</span>
                     <span className="text-xs font-bold text-pink-500">{progress.percent}%</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-rose-50 mb-2">
-                    <div
-                      className="h-full rounded-full bg-pink-400 transition-all duration-500"
-                      style={{ width: `${progress.percent}%` }}
-                    />
+                  <div className="h-1.5 rounded-full bg-rose-50 dark:bg-slate-700 mb-2">
+                    <div className="h-full rounded-full bg-pink-400 transition-all duration-500" style={{ width: `${progress.percent}%` }} />
                   </div>
                   {nextSteps.length > 0 && (
                     <div className="flex flex-col gap-1">
                       {nextSteps.map(n => (
-                        <div key={n.id} className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 rounded-lg px-2 py-1">
+                        <div key={n.id} className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 rounded-lg px-2 py-1">
                           <span>▶</span>
                           <span className="truncate">{getNodeTitle(n)}</span>
                         </div>
@@ -171,31 +159,54 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Recent achievements widget */}
+      {recentAchievements.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">🏆 Letzte Achievements</h2>
+            <Link href="/settings?tab=achievements" className="text-xs text-pink-500 hover:text-pink-600">
+              Alle {unlockedIds.length}/{ACHIEVEMENTS.length} →
+            </Link>
+          </div>
+          <div className="flex flex-col gap-2">
+            {recentAchievements.map(a => {
+              const cfg = RARITY_CONFIG[a.rarity]
+              return (
+                <div
+                  key={a.id}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl border ${cfg.cardBg} ${cfg.ring}`}
+                >
+                  <span className="text-2xl flex-shrink-0">{a.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">{a.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-400">{a.description}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gradient-to-r ${cfg.gradient} text-white flex-shrink-0`}>
+                    {cfg.label}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent quests */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">📋 Nächste Quests</h2>
-            <Link href="/quests" className="text-xs text-pink-500 hover:text-pink-600">
-              Alle →
-            </Link>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">📋 Nächste Quests</h2>
+            <Link href="/quests" className="text-xs text-pink-500 hover:text-pink-600">Alle →</Link>
           </div>
           <div className="flex flex-col gap-2">
             {recentQuests.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4 text-center">Alle Quests erledigt! 🎉</p>
+              <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">Alle Quests erledigt! 🎉</p>
             ) : (
-              recentQuests.map((q) => (
-                <div
-                  key={q.id}
-                  className="bg-white rounded-xl border border-rose-100 px-3 py-2.5 flex items-center gap-2"
-                >
+              recentQuests.map(q => (
+                <div key={q.id} className="bg-white dark:bg-slate-800 rounded-xl border border-rose-100 dark:border-slate-700 px-3 py-2.5 flex items-center gap-2">
                   <span className="text-sm">{q.status === 'in-progress' ? '🔄' : '⭕'}</span>
-                  <span className="text-sm text-gray-700 flex-1 truncate">{q.title}</span>
-                  <Badge
-                    variant={
-                      q.priority === 'high' ? 'red' : q.priority === 'medium' ? 'amber' : 'gray'
-                    }
-                  >
+                  <span className="text-sm text-gray-700 dark:text-slate-200 flex-1 truncate">{q.title}</span>
+                  <Badge variant={q.priority === 'high' ? 'red' : q.priority === 'medium' ? 'amber' : 'gray'}>
                     {q.priority}
                   </Badge>
                 </div>
@@ -207,23 +218,18 @@ export default function DashboardPage() {
         {/* Items needed */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700">📦 Items die ich brauche</h2>
-            <Link href="/items" className="text-xs text-pink-500 hover:text-pink-600">
-              Alle →
-            </Link>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">📦 Items die ich brauche</h2>
+            <Link href="/items" className="text-xs text-pink-500 hover:text-pink-600">Alle →</Link>
           </div>
           <div className="flex flex-col gap-2">
             {recentItems.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4 text-center">Alle Items gesammelt! ✨</p>
+              <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">Alle Items gesammelt! ✨</p>
             ) : (
-              recentItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-xl border border-rose-100 px-3 py-2.5 flex items-center gap-2"
-                >
+              recentItems.map(item => (
+                <div key={item.id} className="bg-white dark:bg-slate-800 rounded-xl border border-rose-100 dark:border-slate-700 px-3 py-2.5 flex items-center gap-2">
                   <span className="text-sm">{item.status === 'collecting' ? '📥' : '🔍'}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700 truncate">{item.name}</p>
+                    <p className="text-sm text-gray-700 dark:text-slate-200 truncate">{item.name}</p>
                     <p className="text-xs text-pink-400">{item.mod}</p>
                   </div>
                   <Badge variant={item.status === 'collecting' ? 'amber' : 'red'}>

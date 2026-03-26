@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import type { ItemNode, ItemStatus } from '@/types'
 import { useGoalStore } from '@/store/useGoalStore'
+import { triggerConfetti } from '@/lib/confetti'
 
 const statusConfig: Record<ItemStatus, { label: string; variant: 'red' | 'amber' | 'green'; emoji: string }> = {
   needed:     { label: 'Gesucht',    variant: 'red',   emoji: '🔍' },
@@ -76,7 +77,7 @@ export function ItemCard({ item, onEdit, onDeleteRequest, onStatusChange, onClic
       <div className="mt-3 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
         <Badge variant={status.variant}>{status.label}</Badge>
         <button
-          onClick={() => onStatusChange(item.id, nextStatus)}
+          onClick={(e) => { onStatusChange(item.id, nextStatus); if (nextStatus === 'have') triggerConfetti(e.clientX, e.clientY, 70) }}
           className="text-xs text-pink-500 hover:text-pink-600 transition-colors"
         >
           → {statusConfig[nextStatus].label}

@@ -2,12 +2,15 @@
 
 import { useState, useEffect, type ReactNode } from 'react'
 import { Menu } from 'lucide-react'
-import { Sidebar } from './Sidebar'
-import { useQuestStore }   from '@/store/useQuestStore'
-import { useBuildingStore } from '@/store/useBuildingStore'
-import { useItemStore }    from '@/store/useItemStore'
-import { useGoalStore }    from '@/store/useGoalStore'
-import { useNoteStore }    from '@/store/useNoteStore'
+import { Sidebar }              from './Sidebar'
+import { AchievementToast }     from '@/components/ui/AchievementToast'
+import { useQuestStore }        from '@/store/useQuestStore'
+import { useBuildingStore }     from '@/store/useBuildingStore'
+import { useItemStore }         from '@/store/useItemStore'
+import { useGoalStore }         from '@/store/useGoalStore'
+import { useNoteStore }         from '@/store/useNoteStore'
+import { useSettingsStore }     from '@/store/useSettingsStore'
+import { useAchievementStore }  from '@/store/useAchievementStore'
 
 interface AppShellProps {
   children: ReactNode
@@ -22,12 +25,14 @@ export function AppShell({ children }: AppShellProps) {
       document.documentElement.classList.add('dark')
     }
 
-    // 1. Rehydrate from localStorage
+    // 1. Rehydrate all stores from localStorage
     useQuestStore.persist.rehydrate()
     useBuildingStore.persist.rehydrate()
     useItemStore.persist.rehydrate()
     useGoalStore.persist.rehydrate()
     useNoteStore.persist.rehydrate()
+    useSettingsStore.persist.rehydrate()
+    useAchievementStore.persist.rehydrate()
 
     // 2. Load mock data only on very first run (_dataVersion === 0)
     useQuestStore.getState().initializeIfNeeded()
@@ -35,6 +40,34 @@ export function AppShell({ children }: AppShellProps) {
     useItemStore.getState().initializeIfNeeded()
     useGoalStore.getState().initializeIfNeeded()
     useNoteStore.getState().initializeIfNeeded()
+
+    // 3. Check achievements once after hydration
+    const checkNow = () => {
+      useAchievementStore.getState().checkAndUnlock({
+        quests:      useQuestStore.getState().quests,
+        items:       useItemStore.getState().items,
+        buildings:   useBuildingStore.getState().buildings,
+        notes:       useNoteStore.getState().notes,
+        goals:       useGoalStore.getState().goals,
+        unlockedIds: useAchievementStore.getState().unlockedIds,
+      })
+    }
+    checkNow()
+
+    // 4. Subscribe to all relevant stores to check achievements on every change
+    const unsubQuests    = useQuestStore.subscribe(checkNow)
+    const unsubItems     = useItemStore.subscribe(checkNow)
+    const unsubBuildings = useBuildingStore.subscribe(checkNow)
+    const unsubNotes     = useNoteStore.subscribe(checkNow)
+    const unsubGoals     = useGoalStore.subscribe(checkNow)
+
+    return () => {
+      unsubQuests()
+      unsubItems()
+      unsubBuildings()
+      unsubNotes()
+      unsubGoals()
+    }
   }, [])
 
   return (
@@ -60,6 +93,8 @@ export function AppShell({ children }: AppShellProps) {
           {children}
         </main>
       </div>
+
+      <AchievementToast />
     </div>
   )
 }
