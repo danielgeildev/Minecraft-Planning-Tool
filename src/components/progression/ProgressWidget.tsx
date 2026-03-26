@@ -10,6 +10,7 @@ import {
   getCurrentLevelRange,
   MAX_LEVEL,
 } from '@/lib/progression/xp'
+import { useMobColors } from '@/lib/progression/useMobColors'
 
 export function ProgressWidget() {
   const totalXp = useProgressStore(s => s.totalXp)
@@ -19,7 +20,7 @@ export function ProgressWidget() {
   const xpInLevel = getXpInCurrentLevel(totalXp)
   const levelRange = getCurrentLevelRange(totalXp)
   const isMaxLevel = mob.level >= MAX_LEVEL
-  const { color } = mob
+  const color = useMobColors(mob)
 
   return (
     <Link

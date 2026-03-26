@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useProgressStore } from '@/store/useProgressStore'
 import { getCurrentMobLevel } from '@/lib/progression/xp'
+import { useMobColors } from '@/lib/progression/useMobColors'
 import { triggerConfetti } from '@/lib/confetti'
 
 export function LevelUpModal() {
@@ -14,6 +15,10 @@ export function LevelUpModal() {
 
   // Derive show from store state
   const show = pendingLevel !== null
+
+  // Must call hooks unconditionally (before any early return)
+  const mob = getCurrentMobLevel(totalXp)
+  const color = useMobColors(mob)
 
   useEffect(() => {
     if (pendingLevel === null || pendingLevel === prevLevelRef.current) return
@@ -46,9 +51,6 @@ export function LevelUpModal() {
   }, [show, handleClose])
 
   if (!show) return null
-
-  const mob = getCurrentMobLevel(totalXp)
-  const { color } = mob
 
   return (
     <div

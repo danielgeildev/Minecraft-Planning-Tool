@@ -13,6 +13,7 @@ import {
   type XpEventType,
 } from '@/lib/progression/xp'
 import { XP_LABELS } from '@/lib/progression/xp'
+import { resolveMobColors, useIsDark } from '@/lib/progression/useMobColors'
 
 // ─── Mob Level Card ─────────────────────────────────────────────────────────
 
@@ -21,13 +22,15 @@ function MobLevelCard({
   isReached,
   isCurrent,
   totalXp,
+  isDark,
 }: {
   mob: (typeof MOB_LEVELS)[number]
   isReached: boolean
   isCurrent: boolean
   totalXp: number
+  isDark: boolean
 }) {
-  const { color } = mob
+  const color = resolveMobColors(mob, isDark)
 
   return (
     <div
@@ -44,7 +47,9 @@ function MobLevelCard({
       style={isCurrent ? {
         borderColor: color.accent,
         boxShadow: `0 4px 24px ${color.glow}`,
-        background: `linear-gradient(135deg, ${color.bg}, white)`,
+        background: isDark
+          ? `linear-gradient(135deg, ${color.bg}, #1e293b)`
+          : `linear-gradient(135deg, ${color.bg}, white)`,
       } : undefined}
     >
       {/* Current level indicator */}
@@ -187,6 +192,7 @@ function XpSourcesSummary({ xpLog }: { xpLog: { eventType: XpEventType; xp: numb
 export default function ProgressPage() {
   const totalXp = useProgressStore(s => s.totalXp)
   const xpLog = useProgressStore(s => s.xpLog)
+  const isDark = useIsDark()
 
   const mob = getCurrentMobLevel(totalXp)
   const progress = getProgressToNextLevel(totalXp)
@@ -194,10 +200,11 @@ export default function ProgressPage() {
   const xpInLevel = getXpInCurrentLevel(totalXp)
   const levelRange = getCurrentLevelRange(totalXp)
   const isMaxLevel = mob.level >= MAX_LEVEL
-  const { color } = mob
+  const color = resolveMobColors(mob, isDark)
 
   // Next mob preview
   const nextMob = mob.level < MAX_LEVEL ? MOB_LEVELS[mob.level] : null
+  const nextMobColor = nextMob ? resolveMobColors(nextMob, isDark) : null
 
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto lg:max-w-none lg:px-8">
@@ -304,7 +311,7 @@ export default function ProgressPage() {
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center text-xl opacity-60"
-              style={{ background: `linear-gradient(135deg, ${nextMob.color.from}15, ${nextMob.color.to}25)` }}
+              style={{ background: nextMobColor ? `linear-gradient(135deg, ${nextMobColor.from}15, ${nextMobColor.to}25)` : undefined }}
             >
               {nextMob.emoji}
             </div>
@@ -340,6 +347,7 @@ export default function ProgressPage() {
                 isReached={totalXp >= m.xpRequired}
                 isCurrent={m.level === mob.level}
                 totalXp={totalXp}
+                isDark={isDark}
               />
             ))}
           </div>
