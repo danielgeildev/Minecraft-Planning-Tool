@@ -390,16 +390,28 @@ export function AchievementToast() {
             />
           )}
 
-          {/* Emoji */}
-          <span
-            className="text-4xl flex-shrink-0 select-none"
-            style={{
-              animation: 'emojiBounce 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.12s both',
-              filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.3))',
-            }}
-          >
-            {achievement.emoji}
-          </span>
+          {/* Emoji / image */}
+          {achievement.emoji.startsWith('/') ? (
+            <img
+              src={achievement.emoji}
+              alt=""
+              className="w-10 h-10 flex-shrink-0 rounded-lg object-cover select-none"
+              style={{
+                animation: 'emojiBounce 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.12s both',
+                filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.4))',
+              }}
+            />
+          ) : (
+            <span
+              className="text-4xl flex-shrink-0 select-none"
+              style={{
+                animation: 'emojiBounce 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.12s both',
+                filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.3))',
+              }}
+            >
+              {achievement.emoji}
+            </span>
+          )}
 
           {/* Text */}
           <div className="flex-1 min-w-0">

@@ -544,7 +544,7 @@ export const ACHIEVEMENTS: Achievement[] = [
 
   {
     id: 'felix-lover',
-    emoji: '🦝',
+    emoji: '/OIP.webp',
     title: 'Felix Lover',
     description: 'Du hast Felix angeklickt. Er liebt dich auch! 🌸',
     rarity: 'mythic',

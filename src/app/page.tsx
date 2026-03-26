@@ -179,7 +179,11 @@ export default function DashboardPage() {
                   title="Effekt nochmal abspielen"
                   className={`flex items-center gap-3 px-4 py-3 rounded-2xl border text-left w-full transition-opacity hover:opacity-80 active:scale-[0.98] ${cfg.cardBg} ${cfg.ring}`}
                 >
-                  <span className="text-2xl flex-shrink-0">{a.emoji}</span>
+                  {a.emoji.startsWith('/') ? (
+                    <img src={a.emoji} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                  ) : (
+                    <span className="text-2xl flex-shrink-0">{a.emoji}</span>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-800 dark:text-slate-100 truncate">{a.title}</p>
                     <p className="text-xs text-gray-500 dark:text-slate-400">{a.description}</p>

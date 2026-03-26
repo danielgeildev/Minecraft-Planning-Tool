@@ -199,6 +199,13 @@ export default function SettingsPage() {
 
   const isMythicUnlocked = (id: string) => unlockedIds.includes(id)
 
+  const renderEmoji = (emoji: string, className = 'text-2xl') =>
+    emoji.startsWith('/') ? (
+      <img src={emoji} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />
+    ) : (
+      <span className={`${className} flex-shrink-0`}>{emoji}</span>
+    )
+
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto lg:max-w-3xl lg:px-8">
       <div className="mb-6">
@@ -427,8 +434,8 @@ export default function SettingsPage() {
                               : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 opacity-50 grayscale'}
                         `}
                       >
-                        <span className={`text-2xl flex-shrink-0 ${!unlocked && !hidden ? 'opacity-40' : ''}`}>
-                          {unlocked ? a.emoji : hidden ? '✨' : '🔒'}
+                        <span className={`flex-shrink-0 ${!unlocked && !hidden ? 'opacity-40' : ''}`}>
+                          {unlocked ? renderEmoji(a.emoji) : hidden ? <span className="text-2xl">✨</span> : <span className="text-2xl">🔒</span>}
                         </span>
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-semibold truncate ${hidden ? 'text-violet-300' : 'text-gray-800 dark:text-slate-100'}`}>
