@@ -6,6 +6,7 @@ import { X } from 'lucide-react'
 
 const navItems = [
   { href: '/',           label: 'Dashboard',      emoji: '🏠' },
+  { href: '/spielplan',  label: 'Spielplan',      emoji: '⚡' },
   { href: '/goals',      label: 'Ziele',          emoji: '🎯' },
   { href: '/quests',     label: 'Quests',         emoji: '📋' },
   { href: '/buildings',  label: 'Gebäude',        emoji: '🏗️' },
