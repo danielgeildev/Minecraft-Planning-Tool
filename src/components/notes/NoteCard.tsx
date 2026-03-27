@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Trash2, ChevronDown, ChevronUp, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { RichTextDisplay } from '@/components/ui/RichTextDisplay'
 import { NoteImage } from './NoteImage'
+import { ImageLightbox } from '@/components/ui/ImageLightbox'
 import type { NoteNode } from '@/types/note'
 import type { AnyNode } from '@/types'
 import { getNodeTitle } from '@/types'
@@ -25,13 +26,8 @@ interface NoteCardProps {
 }
 
 export function NoteCard({ note, allNodes, allNotes = [], onEdit, onDelete }: NoteCardProps) {
-  const [expanded, setExpanded]         = useState(false)
-  const [lightboxIdx, setLightboxIdx]   = useState<number | null>(null)
-
-  const openLightbox  = (i: number) => setLightboxIdx(i)
-  const closeLightbox = () => setLightboxIdx(null)
-  const prevImage     = () => setLightboxIdx(i => i !== null ? (i - 1 + note.images.length) % note.images.length : null)
-  const nextImage     = () => setLightboxIdx(i => i !== null ? (i + 1) % note.images.length : null)
+  const [expanded, setExpanded]       = useState(false)
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
 
   type LinkedEntry = { id: string; label: string; typeKey: string }
   const linkedEntries: LinkedEntry[] = note.linkedNodeIds.flatMap(id => {
@@ -84,7 +80,7 @@ export function NoteCard({ note, allNodes, allNotes = [], onEdit, onDelete }: No
           {note.images.map((ref, i) => (
             <button
               key={i}
-              onClick={() => openLightbox(i)}
+              onClick={() => setLightboxIdx(i)}
               className="flex-shrink-0 w-20 h-14 rounded-xl overflow-hidden border border-rose-100 dark:border-slate-600 hover:border-pink-300 dark:hover:border-pink-600 transition-colors"
             >
               <NoteImage imageRef={ref} alt={`Bild ${i + 1}`} className="w-full h-full object-cover" />
@@ -133,54 +129,15 @@ export function NoteCard({ note, allNodes, allNotes = [], onEdit, onDelete }: No
       </div>
     </div>
 
-    {/* Lightbox */}
-    {lightboxIdx !== null && note.images.length > 0 && (
-      <div
-        className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4"
-        onClick={closeLightbox}
-      >
-        <div className="relative max-w-4xl w-full" onClick={e => e.stopPropagation()}>
-          {/* Close */}
-          <button
-            onClick={closeLightbox}
-            className="absolute -top-10 right-0 text-white/70 hover:text-white transition-colors"
-          >
-            <X size={24} />
-          </button>
-
-          {/* Image */}
-          <NoteImage
-            imageRef={note.images[lightboxIdx]}
-            alt={`Bild ${lightboxIdx + 1}`}
-            className="w-full max-h-[80vh] object-contain rounded-xl"
-          />
-
-          {/* Nav arrows */}
-          {note.images.length > 1 && (
-            <>
-              <button
-                onClick={prevImage}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-              >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                onClick={nextImage}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </>
-          )}
-
-          {/* Counter */}
-          {note.images.length > 1 && (
-            <p className="text-center text-white/60 text-xs mt-3">
-              {lightboxIdx + 1} / {note.images.length}
-            </p>
-          )}
-        </div>
-      </div>
+    {lightboxIdx !== null && (
+      <ImageLightbox
+        imageRefs={note.images}
+        initialIndex={lightboxIdx}
+        onClose={() => setLightboxIdx(null)}
+        renderImage={(ref, cls) => (
+          <NoteImage imageRef={ref} alt="" className={cls} />
+        )}
+      />
     )}
     </>
   )
