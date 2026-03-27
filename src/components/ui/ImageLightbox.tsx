@@ -46,17 +46,9 @@ export function ImageLightbox({
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  // Release drag if mouse leaves the window
-  useEffect(() => {
-    if (!zoomed) return
-    const up = () => {
-      if (!isDragging.current) return
-      isDragging.current = false
-      setDragging(false)
-    }
-    window.addEventListener('mouseup', up)
-    return () => window.removeEventListener('mouseup', up)
-  }, [zoomed])
+  // No window-level mouseup listener — it fires before React's onMouseUp and
+  // resets isDragging.current too early, breaking click-to-zoom-out detection.
+  // Drag cancelled via onMouseLeave instead (see below).
 
   /** Click on un-zoomed image → zoom in, centring on the clicked pixel. */
   const handleUnzoomedClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -88,19 +80,27 @@ export function ImageLightbox({
     if (!isDragging.current || !scrollRef.current) return
     const dx = e.clientX - dragOrigin.current.x
     const dy = e.clientY - dragOrigin.current.y
-    // Track max displacement from start (not accumulated sum)
-    dragMoved.current        = Math.sqrt(dx * dx + dy * dy)
+    dragMoved.current = Math.sqrt(dx * dx + dy * dy)
+    // Only pan once the user has clearly started dragging — avoids micro-shifts on click
+    if (dragMoved.current < DRAG_THRESH) return
     scrollRef.current.scrollLeft = dragOrigin.current.sl - dx
     scrollRef.current.scrollTop  = dragOrigin.current.st - dy
   }
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging.current) return
+    const moved = dragMoved.current
     isDragging.current = false
     setDragging(false)
     e.stopPropagation()
-    // Treat as click (zoom out) only when barely moved
-    if (dragMoved.current < DRAG_THRESH) setZoomed(false)
+    if (moved < DRAG_THRESH) setZoomed(false)
+  }
+
+  /** Cancel drag when cursor leaves the container — no zoom-out. */
+  const handleMouseLeave = () => {
+    if (!isDragging.current) return
+    isDragging.current = false
+    setDragging(false)
   }
 
   const zoomedCursor = dragging ? 'cursor-grabbing' : 'cursor-grab'
@@ -144,6 +144,7 @@ export function ImageLightbox({
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
           onClick={e => e.stopPropagation()}
         >
           {/* CSS `zoom` affects layout → scrollbars / scrollWidth reflect zoomed size */}
