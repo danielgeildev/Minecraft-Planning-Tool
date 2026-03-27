@@ -11,6 +11,7 @@ import {
   type Node,
   type Edge,
   type NodeTypes,
+  type EdgeTypes,
   type NodeProps,
   type Connection,
   type EdgeChange,
@@ -20,6 +21,7 @@ import '@xyflow/react/dist/style.css'
 import { GraphQuestNode }    from './GraphQuestNode'
 import { GraphItemNode }     from './GraphItemNode'
 import { GraphBuildingNode } from './GraphBuildingNode'
+import { GraphCustomEdge }   from './GraphCustomEdge'
 import type { GraphNodeData } from '@/lib/graph/convert'
 import type { AnyNode } from '@/types'
 
@@ -27,6 +29,10 @@ const nodeTypes: NodeTypes = {
   questNode:    GraphQuestNode    as unknown as ComponentType<NodeProps>,
   itemNode:     GraphItemNode     as unknown as ComponentType<NodeProps>,
   buildingNode: GraphBuildingNode as unknown as ComponentType<NodeProps>,
+}
+
+const edgeTypes: EdgeTypes = {
+  custom: GraphCustomEdge as unknown as EdgeTypes[string],
 }
 
 const stateColor: Record<string, string> = {
@@ -94,6 +100,7 @@ export function GraphView({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={handleEdgesChange}
         onNodeClick={handleNodeClick}
@@ -101,12 +108,16 @@ export function GraphView({
         onReconnect={onReconnect}
         onEdgeClick={onEdgeClick}
         fitView
-        fitViewOptions={{ padding: 0.15 }}
-        minZoom={0.3}
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.2}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
         deleteKeyCode="Delete"
         connectionRadius={50}
+        // Keep nodes rendered above edges at all times so no edge
+        // appears to "pierce" a node even when selected.
+        elevateEdgesOnSelect={false}
+        elevateNodesOnSelect={true}
       >
         <Background color="#fda4af" gap={20} size={1} style={{ opacity: 0.2 }} />
         <Controls

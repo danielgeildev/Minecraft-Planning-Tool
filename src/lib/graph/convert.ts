@@ -82,6 +82,9 @@ export function convertNodesToGraph(
       let edgeLabelColor = '#9ca3af'
       if (dep.amount && dep.type === 'requires') {
         edgeLabel = `×${dep.amount}`
+        const targetNode = allNodes.find(n => n.id === dep.targetId)
+        const targetDone = targetNode?.status === 'done' || targetNode?.status === 'have'
+        edgeLabelColor = targetDone ? '#34d399' : '#f87171'  // emerald-400 : red-400
       } else if (node.type === 'building' && dep.type === 'requires') {
         const req = node.itemRequirements?.find(r => r.itemId === dep.targetId)
         if (req) {
@@ -91,24 +94,40 @@ export function convertNodesToGraph(
         }
       }
 
+      const edgeColor  = isOnPath ? '#ec4899' : depColor
+      const isRelated  = dep.type === 'related'
+      const isRequires = dep.type === 'requires'
+
+      // Mini-card colours matching the node style (bg = *-50, border = *-300)
+      const labelBg     = edgeLabelColor === '#34d399' ? '#ecfdf5'   // emerald-50
+                        : edgeLabelColor === '#f87171' ? '#fff1f2'   // rose-50
+                        : '#f9fafb'                                  // gray-50
+      const labelBorder = edgeLabelColor === '#34d399' ? '#6ee7b7'   // emerald-300
+                        : edgeLabelColor === '#f87171' ? '#fda4af'   // rose-300
+                        : '#d1d5db'                                  // gray-300
+
       edges.push({
         id:       `${dep.targetId}→${node.id}:${dep.type}`,
         source:   dep.targetId,
         target:   node.id,
-        type:     'smoothstep',
-        animated: dep.type === 'requires' && !isDone,
-        label:    edgeLabel,
-        labelStyle: { fontSize: 10, fill: edgeLabelColor, fontWeight: 600 },
+        // Use the custom HTML edge type whenever there's a label so the
+        // label box can be styled with real CSS (not SVG fill attributes).
+        type:     edgeLabel ? 'custom' : (isRelated ? 'straight' : 'smoothstep'),
+        animated: isRequires && !isDone && !isOnPath,
+        data:     edgeLabel ? { labelText: edgeLabel, labelBg, labelBorder, labelColor: edgeLabelColor } : undefined,
+        zIndex:   isOnPath ? 10 : isRequires ? 5 : 1,
         style: {
-          stroke:          isOnPath ? '#ec4899' : depColor,
-          strokeWidth:     isOnPath ? 3 : dep.type === 'requires' ? 2 : 1,
-          strokeDasharray: dep.type === 'related' ? '4 3' : undefined,
+          stroke:          edgeColor,
+          strokeWidth:     isOnPath ? 3 : isRequires ? 2 : 1.5,
+          strokeDasharray: isRelated ? '5 4' : undefined,
+          // De-emphasise related edges so structural requires/unlocks stand out
+          opacity:         isRelated ? 0.45 : 1,
         },
         markerEnd: {
           type:   'arrowclosed',
-          color:  isOnPath ? '#ec4899' : depColor,
-          width:  16,
-          height: 16,
+          color:  edgeColor,
+          width:  isOnPath ? 18 : 14,
+          height: isOnPath ? 18 : 14,
         },
       })
     })
