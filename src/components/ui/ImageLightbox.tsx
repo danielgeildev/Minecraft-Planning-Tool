@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react'
+
+const ZOOM = 2.5
 
 interface ImageLightboxProps {
   /** imageRefs, UUIDs, or data-URLs — one per image */
@@ -20,21 +22,48 @@ export function ImageLightbox({
 }: ImageLightboxProps) {
   const [idx, setIdx]       = useState(initialIndex)
   const [zoomed, setZoomed] = useState(false)
+  const scrollRef           = useRef<HTMLDivElement>(null)
 
   const prev = () => { setZoomed(false); setIdx(i => (i - 1 + imageRefs.length) % imageRefs.length) }
   const next = () => { setZoomed(false); setIdx(i => (i + 1) % imageRefs.length) }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape')                   onClose()
-      if (e.key === 'ArrowLeft')                prev()
-      if (e.key === 'ArrowRight')               next()
-      if (e.key === '+' || e.key === '=')       setZoomed(true)
-      if (e.key === '-')                         setZoomed(false)
+      if (e.key === 'Escape')              onClose()
+      if (e.key === 'ArrowLeft')           prev()
+      if (e.key === 'ArrowRight')          next()
+      if (e.key === '+' || e.key === '=') setZoomed(true)
+      if (e.key === '-')                   setZoomed(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   })
+
+  /** Zoom in centred on the exact pixel the user clicked. */
+  const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+
+    if (zoomed) {
+      setZoomed(false)
+      return
+    }
+
+    // Fraction within the current (un-zoomed) image wrapper
+    const rect = e.currentTarget.getBoundingClientRect()
+    const fracX = (e.clientX - rect.left)  / rect.width
+    const fracY = (e.clientY - rect.top)   / rect.height
+
+    setZoomed(true)
+
+    // After two animation frames the DOM has the zoomed layout; scroll so the
+    // clicked point ends up in the centre of the scroll container.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const c = scrollRef.current
+      if (!c) return
+      c.scrollLeft = fracX * c.scrollWidth  - c.clientWidth  / 2
+      c.scrollTop  = fracY * c.scrollHeight - c.clientHeight / 2
+    }))
+  }
 
   return (
     <div
@@ -67,22 +96,35 @@ export function ImageLightbox({
       </div>
 
       {/* Image area */}
-      <div
-        className={`
-          flex-1 flex items-center justify-center overflow-auto
-          ${zoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}
-        `}
-        onClick={e => { e.stopPropagation(); setZoomed(z => !z) }}
-      >
-        <div className={zoomed ? 'min-w-max min-h-max p-8' : 'max-w-[92vw] max-h-full'}>
-          {renderImage(
-            imageRefs[idx],
-            zoomed
-              ? 'w-auto h-auto max-w-none max-h-none rounded-xl shadow-2xl select-none'
-              : 'max-w-[92vw] max-h-[78vh] w-auto h-auto object-contain rounded-xl shadow-2xl select-none',
-          )}
+      {zoomed ? (
+        /* Zoomed: scrollable container, image scaled via CSS zoom */
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-auto cursor-zoom-out"
+          onClick={e => { e.stopPropagation(); setZoomed(false) }}
+        >
+          {/* Inner wrapper carries the zoom; CSS `zoom` affects layout → scrollbars work naturally */}
+          <div style={{ zoom: ZOOM }} className="inline-block">
+            {renderImage(
+              imageRefs[idx],
+              'block max-w-[92vw] max-h-[78vh] w-auto h-auto object-contain rounded-xl shadow-2xl select-none',
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Normal: centred, click to zoom at click point */
+        <div className="flex-1 flex items-center justify-center">
+          <div
+            className="cursor-zoom-in"
+            onClick={handleImageClick}
+          >
+            {renderImage(
+              imageRefs[idx],
+              'block max-w-[92vw] max-h-[78vh] w-auto h-auto object-contain rounded-xl shadow-2xl select-none',
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Nav arrows */}
       {imageRefs.length > 1 && (
@@ -104,7 +146,7 @@ export function ImageLightbox({
 
       {/* Hint */}
       <p className="flex-shrink-0 text-center text-white/25 text-[10px] pb-3 pointer-events-none select-none">
-        Klick zum {zoomed ? 'heraus' : 'hinein'}zoomen
+        {zoomed ? 'Scrollen zum Erkunden · Klick zum Herauszoomen' : 'Klick zum Hineinzoomen'}
         {imageRefs.length > 1 ? ' · ← →' : ''}
         {' · Esc schließen'}
       </p>
