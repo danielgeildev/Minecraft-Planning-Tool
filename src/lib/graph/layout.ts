@@ -2,23 +2,24 @@ import type { Node, Edge } from '@xyflow/react'
 
 const NODE_W = 220
 const NODE_H = 100
-const H_GAP  = 240   // wide column gaps so long-range edges clear intermediate nodes
-const V_GAP  = 90    // tall row gaps for clean edge routing
+const H_GAP  = 280   // wide column gaps so long-range edges clear intermediate nodes
+const V_GAP  = 120   // tall row gaps for clean edge routing
 
 /**
  * DAG layout using longest-path depth assignment + Barycenter crossing-minimisation.
  *
- * The Barycenter heuristic (3 forward+backward sweep passes) reorders nodes
- * within each column so that the number of edge crossings is dramatically
- * reduced — this is the core step that prevents edges from cutting through
- * unrelated nodes diagonally.
+ * Nodes whose id appears in `pinnedPositions` keep that exact position and are
+ * excluded from automatic placement (but still participate in barycenter
+ * ordering so sibling nodes stay tidy).
  */
 export function applyAutoLayout<T extends Record<string, unknown>>(
   nodes: Node<T>[],
   edges: Edge[],
+  pinnedPositions?: Record<string, { x: number; y: number }>,
 ): Node<T>[] {
   if (nodes.length === 0) return nodes
 
+  const pinned = pinnedPositions ?? {}
   const nodeSet = new Set(nodes.map(n => n.id))
 
   // --- 1. Build adjacency maps ---
@@ -70,10 +71,6 @@ export function applyAutoLayout<T extends Record<string, unknown>>(
   }
 
   // --- 4. Barycenter crossing-minimisation ---
-  // For each node in the current level, compute the average rank-index of its
-  // connected neighbours in the reference level, then sort by that value.
-  // Nodes with no neighbours keep their relative order (stable sort).
-
   function barycenterSort(level: number, useNextLevel: boolean): void {
     const ids = order.get(level)
     if (!ids || ids.length < 2) return
@@ -85,13 +82,11 @@ export function applyAutoLayout<T extends Record<string, unknown>>(
     const refPos = new Map<string, number>()
     refOrder.forEach((id, i) => refPos.set(id, i))
 
-    // Assign a float position for stable sort of unconnected nodes
     let fallback = 0
     const withBc = ids.map(id => {
       const nbrs = (useNextLevel ? outNeighbors : inNeighbors).get(id) ?? []
       const connected = nbrs.filter(n => refPos.has(n))
       if (connected.length === 0) {
-        // No neighbour on that side — keep relative position (use current index)
         return { id, bc: -1, fallback: fallback++ }
       }
       const avg = connected.reduce((s, n) => s + refPos.get(n)!, 0) / connected.length
@@ -101,7 +96,7 @@ export function applyAutoLayout<T extends Record<string, unknown>>(
 
     withBc.sort((a, b) => {
       if (a.bc < 0 && b.bc < 0) return a.fallback - b.fallback
-      if (a.bc < 0) return 1   // unconnected nodes sink to the end
+      if (a.bc < 0) return 1
       if (b.bc < 0) return -1
       return a.bc - b.bc
     })
@@ -117,13 +112,21 @@ export function applyAutoLayout<T extends Record<string, unknown>>(
   // --- 5. Assign final positions ---
   const posMap = new Map<string, { x: number; y: number }>()
   order.forEach((ids, level) => {
-    const totalH = ids.length * NODE_H + (ids.length - 1) * V_GAP
+    // Filter out pinned nodes for vertical spacing calculation
+    const autoIds = ids.filter(id => !pinned[id])
+    const totalH = autoIds.length * NODE_H + (autoIds.length - 1) * V_GAP
     const startY = -totalH / 2
-    ids.forEach((id, idx) => {
-      posMap.set(id, {
-        x: level * (NODE_W + H_GAP),
-        y: startY + idx * (NODE_H + V_GAP),
-      })
+    let autoIdx = 0
+    ids.forEach(id => {
+      if (pinned[id]) {
+        posMap.set(id, pinned[id])
+      } else {
+        posMap.set(id, {
+          x: level * (NODE_W + H_GAP),
+          y: startY + autoIdx * (NODE_H + V_GAP),
+        })
+        autoIdx++
+      }
     })
   })
 

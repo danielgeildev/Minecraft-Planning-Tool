@@ -22,8 +22,10 @@ export const GraphBuildingNode = memo(({ data }: NodeProps<Node<GraphNodeData>>)
     .map(req => ({ ...req, item: items.find(i => i.id === req.itemId) }))
     .filter((x): x is typeof x & { item: NonNullable<typeof x.item> } => !!x.item)
 
+  const isolated = data.isIsolated
+
   return (
-    <div className={`relative w-52 rounded-2xl border-2 px-3 py-2.5 shadow-sm select-none ${s.bg} ${s.border}`}>
+    <div className={`relative w-52 rounded-2xl border-2 px-3 py-2.5 shadow-sm select-none ${s.bg} ${s.border} ${isolated ? 'border-dashed opacity-75' : ''}`}>
       <Handle
         type="target"
         position={Position.Left}
@@ -49,6 +51,9 @@ export const GraphBuildingNode = memo(({ data }: NodeProps<Node<GraphNodeData>>)
         <span className={`text-xs ${s.text}`}>
           {building.status === 'done' ? 'Fertig' : building.status === 'in-progress' ? 'Im Bau' : 'Geplant'}
         </span>
+        {isolated && (
+          <span className="ml-auto text-[10px] text-gray-300 italic">standalone</span>
+        )}
       </div>
 
       {building.location && (
