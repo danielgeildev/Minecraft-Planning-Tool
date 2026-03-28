@@ -28,11 +28,14 @@ export const GraphItemNode = memo(({ data }: NodeProps<Node<GraphNodeData>>) => 
   const s    = stateStyles[data.state]
   const h    = data.highlight ? highlightStyles[data.highlight] : null
 
+  const isolated = data.isIsolated
+
   return (
     <div
       className={`
         relative w-52 rounded-2xl border-2 px-3 py-2.5 shadow-sm select-none
         ${h ? `${h.bg} ${h.border} ${h.ring}` : `${s.bg} ${s.border}`}
+        ${isolated ? 'border-dashed opacity-75' : ''}
       `}
     >
       <Handle
@@ -68,6 +71,9 @@ export const GraphItemNode = memo(({ data }: NodeProps<Node<GraphNodeData>>) => 
       <div className="flex items-center gap-1.5">
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.dot}`} />
         <span className={`text-xs truncate ${h ? 'text-gray-400' : s.mod}`}>{item.mod}</span>
+        {isolated && (
+          <span className="ml-auto text-[10px] text-gray-300 italic">standalone</span>
+        )}
       </div>
     </div>
   )

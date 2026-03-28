@@ -8,6 +8,8 @@ export interface GraphNodeData {
   node: AnyNode
   state: NodeState
   highlight: GraphHighlight
+  /** true when the node has zero visible edges */
+  isIsolated: boolean
   [key: string]: unknown  // React Flow requires this
 }
 
@@ -15,6 +17,25 @@ const EDGE_COLORS: Record<string, string> = {
   requires: '#f97316',   // orange
   unlocks:  '#22c55e',   // green
   related:  '#a78bfa',   // purple
+}
+
+/**
+ * Slightly shift the hue/lightness of an edge colour so sibling edges from the
+ * same source are distinguishable without being garish.
+ * `index` is the 0-based sibling position, `total` is the sibling count.
+ */
+function shiftEdgeColor(base: string, index: number, total: number): string {
+  if (total <= 1) return base
+  // Lighten/darken by up to ±12% from centre
+  const range = 0.24
+  const t = total === 1 ? 0 : (index / (total - 1)) - 0.5  // -0.5 … +0.5
+  const factor = 1 + t * range
+  // Parse hex
+  const r = parseInt(base.slice(1, 3), 16)
+  const g = parseInt(base.slice(3, 5), 16)
+  const b = parseInt(base.slice(5, 7), 16)
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v * factor)))
+  return `#${clamp(r).toString(16).padStart(2, '0')}${clamp(g).toString(16).padStart(2, '0')}${clamp(b).toString(16).padStart(2, '0')}`
 }
 
 /**
@@ -37,6 +58,17 @@ export function convertNodesToGraph(
 } {
   const visibleSet = new Set(visibleNodes.map(n => n.id))
 
+  // Pre-compute which nodes have at least one visible edge
+  const connectedNodeIds = new Set<string>()
+  visibleNodes.forEach(node => {
+    node.dependencies.forEach(dep => {
+      if (visibleSet.has(dep.targetId)) {
+        connectedNodeIds.add(node.id)
+        connectedNodeIds.add(dep.targetId)
+      }
+    })
+  })
+
   const nodes: Node<GraphNodeData>[] = visibleNodes.map(node => {
     let highlight: GraphHighlight = null
     if (highlights) {
@@ -56,12 +88,24 @@ export function convertNodesToGraph(
         node,
         state: getNodeState(node.id, allNodes),
         highlight,
+        isIsolated: !connectedNodeIds.has(node.id),
       },
       position: { x: 0, y: 0 }, // overwritten by layout
     }
   })
 
   const edges: Edge[] = []
+
+  // Count outgoing edges per source to compute sibling offsets
+  const sourceChildCount = new Map<string, number>()
+  const sourceChildIndex = new Map<string, number>()
+  visibleNodes.forEach(node => {
+    node.dependencies.forEach(dep => {
+      if (!visibleSet.has(dep.targetId)) return
+      const key = dep.targetId  // source in graph terms
+      sourceChildCount.set(key, (sourceChildCount.get(key) ?? 0) + 1)
+    })
+  })
 
   visibleNodes.forEach(node => {
     node.dependencies.forEach(dep => {
@@ -94,7 +138,13 @@ export function convertNodesToGraph(
         }
       }
 
-      const edgeColor  = isOnPath ? '#ec4899' : depColor
+      // Sibling offset: spread edges from the same source apart
+      const sourceId = dep.targetId
+      const sibTotal = sourceChildCount.get(sourceId) ?? 1
+      const sibIdx   = sourceChildIndex.get(sourceId) ?? 0
+      sourceChildIndex.set(sourceId, sibIdx + 1)
+
+      const edgeColor  = isOnPath ? '#ec4899' : shiftEdgeColor(depColor, sibIdx, sibTotal)
       const isRelated  = dep.type === 'related'
       const isRequires = dep.type === 'requires'
 
@@ -106,21 +156,27 @@ export function convertNodesToGraph(
                         : edgeLabelColor === '#f87171' ? '#fda4af'   // rose-300
                         : '#d1d5db'                                  // gray-300
 
+      // Compute vertical offset for sibling edges so they don't overlap
+      const sibOffset = sibTotal <= 1 ? 0 : ((sibIdx / (sibTotal - 1)) - 0.5) * (sibTotal * 12)
+
       edges.push({
         id:       `${dep.targetId}→${node.id}:${dep.type}`,
         source:   dep.targetId,
         target:   node.id,
-        // Use the custom HTML edge type whenever there's a label so the
-        // label box can be styled with real CSS (not SVG fill attributes).
-        type:     edgeLabel ? 'custom' : (isRelated ? 'straight' : 'smoothstep'),
+        type:     'custom',
         animated: isRequires && !isDone && !isOnPath,
-        data:     edgeLabel ? { labelText: edgeLabel, labelBg, labelBorder, labelColor: edgeLabelColor } : undefined,
+        data: {
+          labelText:  edgeLabel,
+          labelBg,
+          labelBorder,
+          labelColor: edgeLabelColor,
+          sibOffset,
+        },
         zIndex:   isOnPath ? 10 : isRequires ? 5 : 1,
         style: {
           stroke:          edgeColor,
           strokeWidth:     isOnPath ? 3 : isRequires ? 2 : 1.5,
           strokeDasharray: isRelated ? '5 4' : undefined,
-          // De-emphasise related edges so structural requires/unlocks stand out
           opacity:         isRelated ? 0.45 : 1,
         },
         markerEnd: {

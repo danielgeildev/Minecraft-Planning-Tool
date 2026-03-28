@@ -15,6 +15,7 @@ import {
   type NodeProps,
   type Connection,
   type EdgeChange,
+  type OnNodeDrag,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 
@@ -24,6 +25,7 @@ import { GraphBuildingNode } from './GraphBuildingNode'
 import { GraphCustomEdge }   from './GraphCustomEdge'
 import type { GraphNodeData } from '@/lib/graph/convert'
 import type { AnyNode } from '@/types'
+import { useGraphPositionStore } from '@/store/useGraphPositionStore'
 
 const nodeTypes: NodeTypes = {
   questNode:    GraphQuestNode    as unknown as ComponentType<NodeProps>,
@@ -62,6 +64,7 @@ export function GraphView({
 }: GraphViewProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges)
+  const setPosition = useGraphPositionStore(s => s.setPosition)
 
   // Sync store-driven changes into ReactFlow state
   useEffect(() => { setNodes(initNodes) }, [initNodes, setNodes])
@@ -73,6 +76,14 @@ export function GraphView({
       onNodeClick?.(data.node as AnyNode)
     },
     [onNodeClick],
+  )
+
+  // Persist position when user finishes dragging a node
+  const handleNodeDragStop: OnNodeDrag = useCallback(
+    (_, node) => {
+      setPosition(node.id, node.position.x, node.position.y)
+    },
+    [setPosition],
   )
 
   // Intercept edge-remove changes and forward to the parent instead of letting
@@ -104,6 +115,7 @@ export function GraphView({
         onNodesChange={onNodesChange}
         onEdgesChange={handleEdgesChange}
         onNodeClick={handleNodeClick}
+        onNodeDragStop={handleNodeDragStop}
         onConnect={onConnect}
         onReconnect={onReconnect}
         onEdgeClick={onEdgeClick}
@@ -114,8 +126,6 @@ export function GraphView({
         proOptions={{ hideAttribution: true }}
         deleteKeyCode="Delete"
         connectionRadius={50}
-        // Keep nodes rendered above edges at all times so no edge
-        // appears to "pierce" a node even when selected.
         elevateEdgesOnSelect={false}
         elevateNodesOnSelect={true}
       >
