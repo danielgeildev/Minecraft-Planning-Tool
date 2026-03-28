@@ -76,14 +76,14 @@ export function NoteCard({ note, allNodes, allNotes = [], onEdit, onDelete }: No
 
       {/* Images (only when expanded) — clickable for lightbox */}
       {note.images.length > 0 && expanded && (
-        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           {note.images.map((ref, i) => (
             <button
               key={i}
               onClick={() => setLightboxIdx(i)}
-              className="flex-shrink-0 w-20 h-14 rounded-xl overflow-hidden border border-rose-100 dark:border-slate-600 hover:border-pink-300 dark:hover:border-pink-600 transition-colors"
+              className="flex-shrink-0 w-24 h-16 sm:w-20 sm:h-14 rounded-xl overflow-hidden border-2 border-rose-100 dark:border-slate-600 hover:border-pink-300 dark:hover:border-pink-600 active:border-pink-400 active:scale-95 transition-all"
             >
-              <NoteImage imageRef={ref} alt={`Bild ${i + 1}`} className="w-full h-full object-cover" />
+              <NoteImage imageRef={ref} alt={`Image ${i + 1}`} className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
