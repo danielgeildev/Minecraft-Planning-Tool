@@ -3,16 +3,17 @@
 import { getSmoothStepPath, EdgeLabelRenderer, BaseEdge, type EdgeProps } from '@xyflow/react'
 
 interface CustomEdgeData {
-  labelText?:        string
-  labelBg?:         string
-  labelBorder?:     string
-  labelColor?:      string
+  labelText?:   string
+  labelBg?:     string
+  labelBorder?: string
+  labelColor?:  string
+  sibOffset?:   number
 }
 
 /**
- * Smoothstep edge with an HTML label rendered via EdgeLabelRenderer.
- * This gives full CSS / Tailwind control over the label box so it can
- * match the visual style of the node cards (rounded, bordered, colored bg).
+ * Smoothstep edge with sibling offset and optional HTML label.
+ * The sibOffset shifts the source/target Y so sibling edges fan out
+ * instead of overlapping on the same path.
  */
 export function GraphCustomEdge({
   id,
@@ -20,12 +21,18 @@ export function GraphCustomEdge({
   targetX, targetY, targetPosition,
   data, markerEnd, style,
 }: EdgeProps) {
-  const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX, sourceY, sourcePosition,
-    targetX, targetY, targetPosition,
-  })
-
   const d = data as CustomEdgeData | undefined
+  const offset = d?.sibOffset ?? 0
+
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY: sourceY + offset,
+    sourcePosition,
+    targetX,
+    targetY: targetY + offset,
+    targetPosition,
+    borderRadius: 16,
+  })
 
   return (
     <>

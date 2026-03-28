@@ -30,11 +30,14 @@ export const GraphQuestNode = memo(({ data }: NodeProps<Node<GraphNodeData>>) =>
   const s     = stateStyles[data.state]
   const h     = data.highlight ? highlightStyles[data.highlight] : null
 
+  const isolated = data.isIsolated
+
   return (
     <div
       className={`
         relative w-52 rounded-2xl border-2 px-3 py-2.5 shadow-sm select-none
         ${h ? `${h.bg} ${h.border} ${h.ring}` : `${s.bg} ${s.border}`}
+        ${isolated ? 'border-dashed opacity-75' : ''}
       `}
     >
       <Handle
@@ -72,6 +75,9 @@ export const GraphQuestNode = memo(({ data }: NodeProps<Node<GraphNodeData>>) =>
         <span className={`text-xs ${h ? 'text-gray-500' : s.text}`}>
           {data.state === 'done' ? 'Erledigt' : data.state === 'available' ? 'Verfügbar' : 'Gesperrt'}
         </span>
+        {isolated && (
+          <span className="ml-auto text-[10px] text-gray-300 italic">standalone</span>
+        )}
         {quest.priority === 'high' && (
           <span className="ml-auto text-xs text-rose-400 font-bold">!</span>
         )}

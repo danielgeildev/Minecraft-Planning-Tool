@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { type Connection, type Edge } from '@xyflow/react'
-import { Filter, Target, Plus, X, Trash2 } from 'lucide-react'
+import { Filter, Target, Plus, X, Trash2, RotateCcw } from 'lucide-react'
 
 import { useQuestStore }    from '@/store/useQuestStore'
 import { useItemStore }     from '@/store/useItemStore'
@@ -26,6 +26,7 @@ import { Button }        from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UndoToast }     from '@/components/ui/UndoToast'
 import { useDeleteNode } from '@/hooks/useDeleteNode'
+import { useGraphPositionStore } from '@/store/useGraphPositionStore'
 
 type StatusFilter = 'all' | 'not-completed' | 'done' | 'available' | 'locked'
 
@@ -44,6 +45,8 @@ export default function GraphPage() {
   const undoDeleteBuilding = useBuildingStore(s => s.undoDelete)
 
   const { deleteNodeAndCleanup, undoDeleteQuest, undoDeleteItem } = useDeleteNode()
+  const pinnedPositions = useGraphPositionStore(s => s.positions)
+  const clearAllPositions = useGraphPositionStore(s => s.clearAll)
 
   const [showQuests,    setShowQuests]    = useState(true)
   const [showItems,     setShowItems]     = useState(true)
@@ -118,8 +121,8 @@ export default function GraphPage() {
   )
 
   const nodes = useMemo(
-    () => applyAutoLayout(rawNodes, edges),
-    [rawNodes, edges],
+    () => applyAutoLayout(rawNodes, edges, pinnedPositions),
+    [rawNodes, edges, pinnedPositions],
   )
 
   const handleNodeClick = useCallback((node: AnyNode) => {
@@ -268,6 +271,19 @@ export default function GraphPage() {
             >
               <Trash2 size={12} />
               Verbindung löschen
+            </Button>
+          )}
+
+          {/* Reset manual positions */}
+          {Object.keys(pinnedPositions).length > 0 && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={clearAllPositions}
+              className="gap-1 text-gray-500"
+            >
+              <RotateCcw size={12} />
+              Reset Layout
             </Button>
           )}
 

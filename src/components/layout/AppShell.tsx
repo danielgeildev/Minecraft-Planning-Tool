@@ -16,6 +16,7 @@ import { useAchievementStore }  from '@/store/useAchievementStore'
 import { useProgressStore }     from '@/store/useProgressStore'
 import { initXpTracking }       from '@/lib/progression/xpTracker'
 import { getLevelFromXp }       from '@/lib/progression/xp'
+import { I18nProvider }         from '@/lib/i18n/I18nProvider'
 
 interface AppShellProps {
   children: ReactNode
@@ -89,6 +90,7 @@ export function AppShell({ children }: AppShellProps) {
   }, [])
 
   return (
+    <I18nProvider>
     <div className="min-h-screen bg-rose-50 dark:bg-slate-950 flex">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -116,5 +118,6 @@ export function AppShell({ children }: AppShellProps) {
       <XpToast />
       <LevelUpModal />
     </div>
+    </I18nProvider>
   )
 }

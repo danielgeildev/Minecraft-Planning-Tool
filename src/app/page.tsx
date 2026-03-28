@@ -8,6 +8,7 @@ import { useItemStore }        from '@/store/useItemStore'
 import { useGoalStore }        from '@/store/useGoalStore'
 import { useSettingsStore }    from '@/store/useSettingsStore'
 import { useAchievementStore } from '@/store/useAchievementStore'
+import { useI18n }             from '@/lib/i18n/I18nProvider'
 import { Badge }               from '@/components/ui/Badge'
 import { getNodeTitle, type AnyNode } from '@/types'
 import { getGoalProgress, getNextStepsForGoal } from '@/lib/planning'
@@ -35,11 +36,13 @@ function StatCard({ emoji, label, value, sub, href }: {
 }
 
 export default function DashboardPage() {
+  const { t } = useI18n()
+
   const quests    = useQuestStore((s) => s.quests)
   const buildings = useBuildingStore((s) => s.buildings)
   const items     = useItemStore((s) => s.items)
   const { goals } = useGoalStore()
-  const playerName   = useSettingsStore(s => s.playerName)
+  const playerName         = useSettingsStore(s => s.playerName)
   const unlockedIds        = useAchievementStore(s => s.unlockedIds)
   const manualUnlock       = useAchievementStore(s => s.manualUnlock)
   const replayAchievement  = useAchievementStore(s => s.replayAchievement)
@@ -72,7 +75,6 @@ export default function DashboardPage() {
   )
   const recentItems = useMemo(() => items.filter(i => i.status !== 'have').slice(0, 5), [items])
 
-  // Last 3 unlocked achievements (most recent first)
   const recentAchievements = useMemo(() =>
     [...unlockedIds]
       .reverse()
@@ -97,8 +99,10 @@ export default function DashboardPage() {
           <img src="/filbert-filibert.gif" alt="Felix" className="w-full h-full object-contain" draggable={false} />
         </a>
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Hallo {playerName}! 🌸</h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Dein ATM10 Fortschritts-Dashboard</p>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">
+            {t('dashboard.greeting', { name: playerName })}
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">{t('dashboard.subtitle')}</p>
         </div>
       </div>
 
@@ -109,8 +113,10 @@ export default function DashboardPage() {
 
       {/* Progress banner */}
       <div className="mb-6 rounded-2xl bg-gradient-to-r from-pink-400 to-rose-400 dark:from-pink-700 dark:to-rose-800 p-4 text-white shadow-sm">
-        <p className="text-xs font-medium opacity-80 mb-1">Gesamt-Fortschritt</p>
-        <p className="text-lg font-bold">{questStats.done}/{questStats.total} Quests erledigt</p>
+        <p className="text-xs font-medium opacity-80 mb-1">{t('dashboard.overallProgress')}</p>
+        <p className="text-lg font-bold">
+          {t('dashboard.questsDone', { done: questStats.done, total: questStats.total })}
+        </p>
         <div className="mt-2 h-2 rounded-full bg-white/30">
           <div
             className="h-2 rounded-full bg-white transition-all duration-500"
@@ -121,17 +127,35 @@ export default function DashboardPage() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
-        <StatCard emoji="📋" label="Aktive Quests"   value={questStats.inProgress} sub={`${questStats.open} offen · ${questStats.done} erledigt`}                    href="/quests"    />
-        <StatCard emoji="🏗️" label="Gebäude im Bau"  value={buildingStats.inProgress} sub={`${buildingStats.total - buildingStats.done} aktiv · ${buildingStats.done} fertig`} href="/buildings" />
-        <StatCard emoji="📦" label="Items gesucht"   value={itemStats.needed}      sub={`${itemStats.have} habe ich · ${itemStats.total} total`}                      href="/items"     />
+        <StatCard
+          emoji="📋"
+          label={t('dashboard.stats.activeQuests')}
+          value={questStats.inProgress}
+          sub={t('dashboard.stats.activeQuestsSub', { open: questStats.open, done: questStats.done })}
+          href="/quests"
+        />
+        <StatCard
+          emoji="🏗️"
+          label={t('dashboard.stats.buildings')}
+          value={buildingStats.inProgress}
+          sub={t('dashboard.stats.buildingsSub', { active: buildingStats.total - buildingStats.done, done: buildingStats.done })}
+          href="/buildings"
+        />
+        <StatCard
+          emoji="📦"
+          label={t('dashboard.stats.itemsNeeded')}
+          value={itemStats.needed}
+          sub={t('dashboard.stats.itemsSub', { have: itemStats.have, total: itemStats.total })}
+          href="/items"
+        />
       </div>
 
       {/* Goals widget */}
       {goals.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">🎯 Aktive Ziele</h2>
-            <Link href="/goals" className="text-xs text-pink-500 hover:text-pink-600">Alle →</Link>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">{t('dashboard.activeGoals')}</h2>
+            <Link href="/goals" className="text-xs text-pink-500 hover:text-pink-600">{t('dashboard.all')}</Link>
           </div>
           <div className="flex flex-col gap-3">
             {goals.slice(0, 3).map(goal => {
@@ -170,9 +194,9 @@ export default function DashboardPage() {
       {recentAchievements.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">🏆 Letzte Achievements</h2>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">{t('dashboard.lastAchievements')}</h2>
             <Link href="/settings?tab=achievements" className="text-xs text-pink-500 hover:text-pink-600">
-              Alle {unlockedIds.length}/{ACHIEVEMENTS.length} →
+              {t('dashboard.achievementsCount', { unlocked: unlockedIds.length, total: ACHIEVEMENTS.length })}
             </Link>
           </div>
           <div className="flex flex-col gap-2">
@@ -182,7 +206,7 @@ export default function DashboardPage() {
                 <button
                   key={a.id}
                   onClick={() => replayAchievement(a.id)}
-                  title="Effekt nochmal abspielen"
+                  title={t('dashboard.replayEffect')}
                   className={`flex items-center gap-3 px-4 py-3 rounded-2xl border text-left w-full transition-opacity hover:opacity-80 active:scale-[0.98] ${cfg.cardBg} ${cfg.ring}`}
                 >
                   {a.emoji.startsWith('/') ? (
@@ -208,12 +232,12 @@ export default function DashboardPage() {
         {/* Recent quests */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">📋 Nächste Quests</h2>
-            <Link href="/quests" className="text-xs text-pink-500 hover:text-pink-600">Alle →</Link>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">{t('dashboard.nextQuests')}</h2>
+            <Link href="/quests" className="text-xs text-pink-500 hover:text-pink-600">{t('dashboard.all')}</Link>
           </div>
           <div className="flex flex-col gap-2">
             {recentQuests.length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">Alle Quests erledigt! 🎉</p>
+              <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">{t('dashboard.allQuestsDone')}</p>
             ) : (
               recentQuests.map(q => (
                 <div key={q.id} className="bg-white dark:bg-slate-800 rounded-xl border border-rose-100 dark:border-slate-700 px-3 py-2.5 flex items-center gap-2">
@@ -231,12 +255,12 @@ export default function DashboardPage() {
         {/* Items needed */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">📦 Items die ich brauche</h2>
-            <Link href="/items" className="text-xs text-pink-500 hover:text-pink-600">Alle →</Link>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">{t('dashboard.itemsNeeded')}</h2>
+            <Link href="/items" className="text-xs text-pink-500 hover:text-pink-600">{t('dashboard.all')}</Link>
           </div>
           <div className="flex flex-col gap-2">
             {recentItems.length === 0 ? (
-              <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">Alle Items gesammelt! ✨</p>
+              <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">{t('dashboard.allItemsCollected')}</p>
             ) : (
               recentItems.map(item => (
                 <div key={item.id} className="bg-white dark:bg-slate-800 rounded-xl border border-rose-100 dark:border-slate-700 px-3 py-2.5 flex items-center gap-2">
@@ -246,7 +270,7 @@ export default function DashboardPage() {
                     <p className="text-xs text-pink-400">{item.mod}</p>
                   </div>
                   <Badge variant={item.status === 'collecting' ? 'amber' : 'red'}>
-                    {item.status === 'collecting' ? 'Sammle' : 'Gesucht'}
+                    {item.status === 'collecting' ? t('dashboard.collecting') : t('dashboard.needed')}
                   </Badge>
                 </div>
               ))

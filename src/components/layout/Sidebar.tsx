@@ -6,19 +6,22 @@ import { X } from 'lucide-react'
 import { useQuestStore }    from '@/store/useQuestStore'
 import { useNoteStore }     from '@/store/useNoteStore'
 import { useBuildingStore } from '@/store/useBuildingStore'
+import { useI18n }          from '@/lib/i18n/I18nProvider'
 
-const navItems = [
-  { href: '/',           label: 'Dashboard',      emoji: '🏠' },
-  { href: '/progress',   label: 'Fortschritt',    emoji: '✨' },
-  { href: '/spielplan',  label: 'Spielplan',      emoji: '⚡' },
-  { href: '/goals',      label: 'Ziele',          emoji: '🎯' },
-  { href: '/quests',     label: 'Quests',         emoji: '📋' },
-  { href: '/buildings',  label: 'Gebäude',        emoji: '🏗️' },
-  { href: '/items',      label: 'Items',          emoji: '📦' },
-  { href: '/graph',      label: 'Graph',          emoji: '🗺️' },
-  { href: '/notes',      label: 'Notizen',        emoji: '📝' },
-  { href: '/timeline',   label: 'Timeline',       emoji: '📅' },
-  { href: '/settings',   label: 'Einstellungen',  emoji: '⚙️' },
+type NavKey = 'dashboard' | 'progress' | 'spielplan' | 'goals' | 'quests' | 'buildings' | 'items' | 'graph' | 'notes' | 'timeline' | 'settings'
+
+const NAV_ITEMS: { href: string; key: NavKey; emoji: string }[] = [
+  { href: '/',           key: 'dashboard', emoji: '🏠' },
+  { href: '/progress',   key: 'progress',  emoji: '✨' },
+  { href: '/spielplan',  key: 'spielplan', emoji: '⚡' },
+  { href: '/goals',      key: 'goals',     emoji: '🎯' },
+  { href: '/quests',     key: 'quests',    emoji: '📋' },
+  { href: '/buildings',  key: 'buildings', emoji: '🏗️' },
+  { href: '/items',      key: 'items',     emoji: '📦' },
+  { href: '/graph',      key: 'graph',     emoji: '🗺️' },
+  { href: '/notes',      key: 'notes',     emoji: '📝' },
+  { href: '/timeline',   key: 'timeline',  emoji: '📅' },
+  { href: '/settings',   key: 'settings',  emoji: '⚙️' },
 ]
 
 interface SidebarProps {
@@ -28,6 +31,7 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const { t }   = useI18n()
 
   const activeQuests    = useQuestStore(s => s.quests.filter(q => q.status === 'in-progress').length)
   const activeBuildings = useBuildingStore(s => s.buildings.filter(b => b.status === 'in-progress').length)
@@ -75,7 +79,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {navItems.map(({ href, label, emoji }) => {
+          {NAV_ITEMS.map(({ href, key, emoji }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
             return (
               <Link
@@ -92,7 +96,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 `}
               >
                 <span className="text-base">{emoji}</span>
-                <span>{label}</span>
+                <span>{t(`nav.${key}`)}</span>
                 <span className="ml-auto flex items-center gap-1.5">
                   {badges[href] > 0 && (
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none
@@ -110,8 +114,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {/* Footer */}
         <div className="px-5 py-4 border-t border-rose-50 dark:border-slate-700">
           <div className="rounded-xl bg-rose-50 dark:bg-slate-800 p-3">
-            <p className="text-xs font-medium text-rose-500 dark:text-rose-400">🌸 Alina&apos;s Quest Tracker</p>
-            <p className="text-xs text-rose-400 dark:text-slate-500 mt-0.5">Viel Spaß beim spielen!</p>
+            <p className="text-xs font-medium text-rose-500 dark:text-rose-400">{t('sidebar.tagline')}</p>
+            <p className="text-xs text-rose-400 dark:text-slate-500 mt-0.5">{t('sidebar.subtitle')}</p>
           </div>
         </div>
       </aside>
