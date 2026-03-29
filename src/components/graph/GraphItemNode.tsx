@@ -14,7 +14,8 @@ const highlightStyles: Record<string, { bg: string; border: string; ring: string
   goal:     { bg: 'bg-pink-50',   border: 'border-pink-400',  ring: 'ring-2 ring-pink-300 ring-offset-1'  },
   nextStep: { bg: 'bg-blue-50',   border: 'border-blue-400',  ring: 'ring-2 ring-blue-300 ring-offset-1'  },
   blocker:  { bg: 'bg-red-50',    border: 'border-red-400',   ring: 'ring-2 ring-red-300 ring-offset-1'   },
-  path:     { bg: 'bg-violet-50', border: 'border-violet-300', ring: '' },
+  path:           { bg: 'bg-violet-50', border: 'border-violet-300', ring: '' },
+  nextBestAction: { bg: 'bg-orange-50', border: 'border-orange-400', ring: 'ring-4 ring-orange-300 ring-offset-2 animate-pulse' },
 }
 
 const statusEmoji: Record<string, string> = {
@@ -61,6 +62,9 @@ export const GraphItemNode = memo(({ data }: NodeProps<Node<GraphNodeData>>) => 
       )}
       {data.highlight === 'blocker' && (
         <div className="absolute -top-2 -right-2 text-xs bg-red-400 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm">🔒</div>
+      )}
+      {data.highlight === 'nextBestAction' && (
+        <div className="absolute -top-2 -right-2 text-xs bg-orange-400 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm">⭐</div>
       )}
 
       <div className="flex items-center gap-1.5 mb-1">

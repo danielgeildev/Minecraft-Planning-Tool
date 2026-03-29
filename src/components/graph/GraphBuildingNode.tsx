@@ -11,6 +11,14 @@ const statusStyles: Record<string, { bg: string; border: string; text: string; d
   planned:       { bg: 'bg-cyan-50',    border: 'border-cyan-200',    text: 'text-cyan-600',    dot: 'bg-cyan-300',    divider: 'border-cyan-100'    },
 }
 
+const highlightStyles: Record<string, { bg: string; border: string; ring: string }> = {
+  goal:           { bg: 'bg-pink-50',    border: 'border-pink-400',   ring: 'ring-2 ring-pink-300 ring-offset-1' },
+  nextStep:       { bg: 'bg-blue-50',    border: 'border-blue-400',   ring: 'ring-2 ring-blue-300 ring-offset-1' },
+  blocker:        { bg: 'bg-red-50',     border: 'border-red-400',    ring: 'ring-2 ring-red-300 ring-offset-1'  },
+  path:           { bg: 'bg-violet-50',  border: 'border-violet-300', ring: '' },
+  nextBestAction: { bg: 'bg-orange-50',  border: 'border-orange-400', ring: 'ring-4 ring-orange-300 ring-offset-2 animate-pulse' },
+}
+
 export const GraphBuildingNode = memo(({ data }: NodeProps<Node<GraphNodeData>>) => {
   if (data.node.type !== 'building') return null
 
@@ -22,10 +30,11 @@ export const GraphBuildingNode = memo(({ data }: NodeProps<Node<GraphNodeData>>)
     .map(req => ({ ...req, item: items.find(i => i.id === req.itemId) }))
     .filter((x): x is typeof x & { item: NonNullable<typeof x.item> } => !!x.item)
 
+  const h = data.highlight ? highlightStyles[data.highlight] : null
   const isolated = data.isIsolated
 
   return (
-    <div className={`relative w-52 rounded-2xl border-2 px-3 py-2.5 shadow-sm select-none ${s.bg} ${s.border} ${isolated ? 'border-dashed opacity-75' : ''}`}>
+    <div className={`relative w-52 rounded-2xl border-2 px-3 py-2.5 shadow-sm select-none ${h ? `${h.bg} ${h.border} ${h.ring}` : `${s.bg} ${s.border}`} ${isolated ? 'border-dashed opacity-75' : ''}`}>
       <Handle
         type="target"
         position={Position.Left}
@@ -41,14 +50,27 @@ export const GraphBuildingNode = memo(({ data }: NodeProps<Node<GraphNodeData>>)
       <Handle type="target" position={Position.Left}  style={{ background: '#5eead4', border: '2px solid #2dd4bf', width: 12, height: 12, cursor: 'crosshair' }} />
       <Handle type="source" position={Position.Right} style={{ background: '#5eead4', border: '2px solid #2dd4bf', width: 12, height: 12, cursor: 'crosshair' }} />
 
+      {data.highlight === 'goal' && (
+        <div className="absolute -top-2 -right-2 text-xs bg-pink-400 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm">🎯</div>
+      )}
+      {data.highlight === 'nextStep' && (
+        <div className="absolute -top-2 -right-2 text-xs bg-blue-400 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm">▶</div>
+      )}
+      {data.highlight === 'blocker' && (
+        <div className="absolute -top-2 -right-2 text-xs bg-red-400 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm">🔒</div>
+      )}
+      {data.highlight === 'nextBestAction' && (
+        <div className="absolute -top-2 -right-2 text-xs bg-orange-400 text-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm">⭐</div>
+      )}
+
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-sm">🏗️</span>
-        <span className={`text-xs font-bold truncate ${s.text}`}>{building.name}</span>
+        <span className={`text-xs font-bold truncate ${h ? 'text-gray-800' : s.text}`}>{building.name}</span>
       </div>
 
       <div className="flex items-center gap-1.5">
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.dot}`} />
-        <span className={`text-xs ${s.text}`}>
+        <span className={`text-xs ${h ? 'text-gray-600' : s.text}`}>
           {building.status === 'done' ? 'Fertig' : building.status === 'in-progress' ? 'Im Bau' : 'Geplant'}
         </span>
         {isolated && (

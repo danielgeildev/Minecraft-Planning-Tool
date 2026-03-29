@@ -13,6 +13,8 @@ import { getNodeTitle, type AnyNode } from '@/types'
 import { getGoalProgress, getNextStepsForGoal } from '@/lib/planning'
 import { ACHIEVEMENTS, RARITY_CONFIG }          from '@/lib/achievements'
 import { ProgressWidget }                       from '@/components/progression/ProgressWidget'
+import { useInventoryStore }                    from '@/store/useInventoryStore'
+import { getGlobalNextBestAction }              from '@/lib/planning/advanced'
 
 function StatCard({ emoji, label, value, sub, href }: {
   emoji: string; label: string; value: number; sub: string; href: string
@@ -44,6 +46,7 @@ export default function DashboardPage() {
   const manualUnlock       = useAchievementStore(s => s.manualUnlock)
   const replayAchievement  = useAchievementStore(s => s.replayAchievement)
 
+  const inventory = useInventoryStore(s => s.inventory)
   const allNodes: AnyNode[] = useMemo(() => [...quests, ...items], [quests, items])
 
   const questStats = {
@@ -71,6 +74,12 @@ export default function DashboardPage() {
     [quests],
   )
   const recentItems = useMemo(() => items.filter(i => i.status !== 'have').slice(0, 5), [items])
+
+  const globalRec = useMemo(() => {
+    const rootGoals = goals.filter(g => !g.parentGoalId)
+    if (rootGoals.length === 0) return null
+    return getGlobalNextBestAction(rootGoals, allNodes, inventory)
+  }, [goals, allNodes, inventory])
 
   // Last 3 unlocked achievements (most recent first)
   const recentAchievements = useMemo(() =>
@@ -125,6 +134,41 @@ export default function DashboardPage() {
         <StatCard emoji="🏗️" label="Gebäude im Bau"  value={buildingStats.inProgress} sub={`${buildingStats.total - buildingStats.done} aktiv · ${buildingStats.done} fertig`} href="/buildings" />
         <StatCard emoji="📦" label="Items gesucht"   value={itemStats.needed}      sub={`${itemStats.have} habe ich · ${itemStats.total} total`}                      href="/items"     />
       </div>
+
+      {/* Global recommendation */}
+      {globalRec && (
+        <div className="mb-8 rounded-2xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/40 dark:to-amber-950/40 border border-orange-200 dark:border-orange-800 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900 flex items-center justify-center text-lg flex-shrink-0">
+              ⭐
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-orange-500 dark:text-orange-400 mb-0.5">Empfohlener nächster Schritt</p>
+              <p className="text-sm font-bold text-gray-800 dark:text-slate-100 truncate">
+                {globalRec.node.type === 'quest' ? '📋' : '📦'} {getNodeTitle(globalRec.node)}
+              </p>
+              <p className="text-xs text-orange-500 dark:text-orange-400 mt-0.5">{globalRec.reason}</p>
+              {(() => {
+                const goalNode = allNodes.find(n => n.id === globalRec.goalNodeId)
+                return goalNode ? (
+                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                    Für Ziel: {getNodeTitle(goalNode)}
+                  </p>
+                ) : null
+              })()}
+            </div>
+            {globalRec.effortLevel && (
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${
+                globalRec.effortLevel === 'low' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' :
+                globalRec.effortLevel === 'medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' :
+                'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300'
+              }`}>
+                {globalRec.effortLevel === 'low' ? 'Einfach' : globalRec.effortLevel === 'medium' ? 'Mittel' : 'Aufwändig'}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Goals widget */}
       {goals.length > 0 && (

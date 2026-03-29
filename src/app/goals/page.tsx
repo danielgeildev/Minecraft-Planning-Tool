@@ -16,12 +16,15 @@ import {
   getGoalProgress,
 } from '@/lib/planning'
 import { getNodeTitle, isNodeDone, type AnyNode } from '@/types'
+import { useInventoryStore }  from '@/store/useInventoryStore'
+import { getNextBestAction }  from '@/lib/planning/advanced'
 
 export default function GoalsPage() {
   const { getRootGoals, getSubgoals, removeGoal } = useGoalStore()
   const goals = getRootGoals()
   const { quests }             = useQuestStore()
   const { items }              = useItemStore()
+  const inventory              = useInventoryStore(s => s.inventory)
 
   const allNodes: AnyNode[] = useMemo(() => [...quests, ...items], [quests, items])
 
@@ -68,7 +71,8 @@ export default function GoalsPage() {
           const nextSteps = getNextStepsForGoal(goal.targetNodeId, allNodes)
           const blockers  = getBlockingNodesForGoal(goal.targetNodeId, allNodes)
           const resources = calculateTotalResources(goal.targetNodeId, allNodes)
-          const isDone    = isNodeDone(targetNode)
+          const isDone         = isNodeDone(targetNode)
+          const recommendation = isDone ? null : getNextBestAction(goal.targetNodeId, allNodes, inventory)
           const subgoals  = getSubgoals(goal.id)
             .map(sg => ({ sg, node: allNodes.find(n => n.id === sg.targetNodeId) }))
             .filter((x): x is { sg: typeof x.sg; node: typeof allNodes[0] } => !!x.node)
@@ -117,6 +121,25 @@ export default function GoalsPage() {
               </div>
 
               <div className="px-5 py-4 flex flex-col gap-5">
+
+                {/* Recommendation */}
+                {recommendation && (
+                  <div className="rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 px-3 py-2.5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm">⭐</span>
+                      <p className="text-xs font-semibold text-orange-600 dark:text-orange-400">Empfohlener nächster Schritt</p>
+                      {recommendation.effortLevel && (
+                        <Badge variant={recommendation.effortLevel === 'low' ? 'green' : recommendation.effortLevel === 'high' ? 'red' : 'amber'}>
+                          {recommendation.effortLevel === 'low' ? 'Einfach' : recommendation.effortLevel === 'medium' ? 'Mittel' : 'Aufwändig'}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                      {recommendation.node.type === 'quest' ? '📋' : '📦'} {getNodeTitle(recommendation.node)}
+                    </p>
+                    <p className="text-xs text-orange-500 dark:text-orange-400 mt-0.5">{recommendation.reason}</p>
+                  </div>
+                )}
 
                 {/* Personal note */}
                 {goal.note && (

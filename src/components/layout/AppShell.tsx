@@ -14,6 +14,7 @@ import { useNoteStore }         from '@/store/useNoteStore'
 import { useSettingsStore }     from '@/store/useSettingsStore'
 import { useAchievementStore }  from '@/store/useAchievementStore'
 import { useProgressStore }     from '@/store/useProgressStore'
+import { useInventoryStore }    from '@/store/useInventoryStore'
 import { initXpTracking }       from '@/lib/progression/xpTracker'
 import { getLevelFromXp }       from '@/lib/progression/xp'
 
@@ -39,6 +40,7 @@ export function AppShell({ children }: AppShellProps) {
     useSettingsStore.persist.rehydrate()
     useAchievementStore.persist.rehydrate()
     useProgressStore.persist.rehydrate()
+    useInventoryStore.persist.rehydrate()
 
     // 1b. Queue any already-unlocked achievements the user hasn't seen a toast for yet
     useAchievementStore.getState().queueUnseen()

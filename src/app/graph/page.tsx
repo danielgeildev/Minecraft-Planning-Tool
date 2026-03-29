@@ -27,6 +27,8 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UndoToast }     from '@/components/ui/UndoToast'
 import { useDeleteNode } from '@/hooks/useDeleteNode'
 import { useGraphPositionStore } from '@/store/useGraphPositionStore'
+import { useInventoryStore }     from '@/store/useInventoryStore'
+import { getNextBestAction }     from '@/lib/planning/advanced'
 
 type StatusFilter = 'all' | 'not-completed' | 'done' | 'available' | 'locked'
 
@@ -47,6 +49,7 @@ export default function GraphPage() {
   const { deleteNodeAndCleanup, undoDeleteQuest, undoDeleteItem } = useDeleteNode()
   const pinnedPositions = useGraphPositionStore(s => s.positions)
   const clearAllPositions = useGraphPositionStore(s => s.clearAll)
+  const inventory = useInventoryStore(s => s.inventory)
 
   const [showQuests,    setShowQuests]    = useState(true)
   const [showItems,     setShowItems]     = useState(true)
@@ -75,20 +78,23 @@ export default function GraphPage() {
 
   // Compute goal highlight sets for all active goals
   const highlights = useMemo(() => {
-    const goalIds     = new Set<string>()
-    const nextStepIds = new Set<string>()
-    const blockerIds  = new Set<string>()
-    const pathIds     = new Set<string>()
+    const goalIds            = new Set<string>()
+    const nextStepIds        = new Set<string>()
+    const blockerIds         = new Set<string>()
+    const pathIds            = new Set<string>()
+    const nextBestActionIds  = new Set<string>()
 
     goals.forEach(g => {
       goalIds.add(g.targetNodeId)
       getRequiredNodesForGoal(g.targetNodeId, allNodes).forEach(n => pathIds.add(n.id))
       getNextStepsForGoal(g.targetNodeId, allNodes).forEach(n => nextStepIds.add(n.id))
       getBlockingNodesForGoal(g.targetNodeId, allNodes).forEach(n => blockerIds.add(n.id))
+      const rec = getNextBestAction(g.targetNodeId, allNodes, inventory)
+      if (rec) nextBestActionIds.add(rec.node.id)
     })
 
-    return { goalIds, nextStepIds, blockerIds, pathIds }
-  }, [goals, allNodes])
+    return { goalIds, nextStepIds, blockerIds, pathIds, nextBestActionIds }
+  }, [goals, allNodes, inventory])
 
   const allMods = useMemo(() => {
     const mods = Array.from(new Set(items.map(i => i.mod).filter(Boolean))).sort()
@@ -244,6 +250,28 @@ export default function GraphPage() {
   const usedInBuildings = selectedNode && selectedNode.type !== 'building'
     ? buildings.filter(b => b.dependencies.some(d => d.targetId === selectedNode.id))
     : []
+
+  // Recommendation for the selected node (derived from highlights memo)
+  const selectedNodeRec = (() => {
+    if (!selectedNode) return null
+    // Case A: selected node IS a goal — show its recommended next action
+    const goalForNode = goals.find(g => g.targetNodeId === selectedNode.id)
+    if (goalForNode) {
+      const rec = getNextBestAction(selectedNode.id, allNodes, inventory)
+      return rec ? { type: 'goal-rec' as const, rec, goalNode: null as AnyNode | null } : null
+    }
+    // Case B: selected node IS the recommended action for some goal
+    const matchingGoal = goals.find(g => {
+      const rec = getNextBestAction(g.targetNodeId, allNodes, inventory)
+      return rec && rec.node.id === selectedNode.id
+    })
+    if (matchingGoal) {
+      const rec = getNextBestAction(matchingGoal.targetNodeId, allNodes, inventory)!
+      const goalNode = allNodes.find(n => n.id === matchingGoal.targetNodeId) ?? null
+      return { type: 'is-rec' as const, rec, goalNode }
+    }
+    return null
+  })()
 
   const stateLabel:   Record<string, string>               = { done: 'Erledigt ✓', available: 'Verfügbar', locked: '🔒 Gesperrt' }
   const stateVariant: Record<string, 'green' | 'amber' | 'gray'> = { done: 'green', available: 'amber', locked: 'gray' }
@@ -401,6 +429,7 @@ export default function GraphPage() {
             <span className="flex items-center gap-1 text-pink-500">🎯 Ziel</span>
             <span className="flex items-center gap-1 text-blue-500">▶ nächster Schritt</span>
             <span className="flex items-center gap-1 text-red-400">🔒 Blocker</span>
+            <span className="flex items-center gap-1 text-orange-500">⭐ Empfohlen</span>
           </>
         )}
         <span className="ml-auto flex items-center gap-2 text-gray-300 italic">
@@ -483,6 +512,34 @@ export default function GraphPage() {
                   <Badge variant={stateVariant[nodeState]}>
                     {stateLabel[nodeState]}
                   </Badge>
+                </div>
+              )}
+
+              {/* Recommendation banner */}
+              {selectedNodeRec?.type === 'goal-rec' && (
+                <div className="mt-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 px-3 py-2">
+                  <p className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-1">⭐ Empfohlener nächster Schritt</p>
+                  <button
+                    onClick={() => setSelectedNode(selectedNodeRec.rec.node)}
+                    className="text-xs text-orange-700 dark:text-orange-300 font-medium hover:underline"
+                  >
+                    {selectedNodeRec.rec.node.type === 'quest' ? '📋' : '📦'} {getNodeTitle(selectedNodeRec.rec.node)}
+                  </button>
+                  <p className="text-xs text-orange-500 dark:text-orange-400 mt-0.5">{selectedNodeRec.rec.reason}</p>
+                </div>
+              )}
+              {selectedNodeRec?.type === 'is-rec' && (
+                <div className="mt-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 px-3 py-2">
+                  <p className="text-xs font-semibold text-orange-600 dark:text-orange-400">⭐ Empfohlen{selectedNodeRec.goalNode ? ' für' : ''}</p>
+                  {selectedNodeRec.goalNode && (
+                    <button
+                      onClick={() => setSelectedNode(selectedNodeRec.goalNode!)}
+                      className="text-xs text-orange-700 dark:text-orange-300 font-medium hover:underline"
+                    >
+                      🎯 {getNodeTitle(selectedNodeRec.goalNode)}
+                    </button>
+                  )}
+                  <p className="text-xs text-orange-500 dark:text-orange-400 mt-0.5">{selectedNodeRec.rec.reason}</p>
                 </div>
               )}
 
