@@ -8,6 +8,7 @@ import { useNoteStore }     from '@/store/useNoteStore'
 import { useBuildingStore } from '@/store/useBuildingStore'
 import { useAuthStore }    from '@/store/useAuthStore'
 import { UserMenu }        from './UserMenu'
+import { SyncIndicator }   from '@/components/ui/SyncIndicator'
 
 const navItems = [
   { href: '/',           label: 'Dashboard',      emoji: '🏠' },
@@ -113,7 +114,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {/* Footer */}
         <div className="px-5 py-4 border-t border-rose-50 dark:border-slate-700 flex flex-col gap-3">
           {isAuthenticated ? (
-            <UserMenu />
+            <>
+              <UserMenu />
+              <SyncIndicator />
+            </>
           ) : (
             <Link
               href="/login"

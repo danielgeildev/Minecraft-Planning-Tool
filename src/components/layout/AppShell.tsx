@@ -17,6 +17,8 @@ import { useProgressStore }     from '@/store/useProgressStore'
 import { useInventoryStore }    from '@/store/useInventoryStore'
 import { useAuthStore }         from '@/store/useAuthStore'
 import { createClient }         from '@/lib/supabase/client'
+import { fetchAndHydrate }     from '@/lib/supabase/fetchAndHydrate'
+import { startSync, stopSync, setHydrating } from '@/lib/supabase/syncEngine'
 import { initXpTracking }       from '@/lib/progression/xpTracker'
 import { getLevelFromXp }       from '@/lib/progression/xp'
 
@@ -43,6 +45,37 @@ export function AppShell({ children }: AppShellProps) {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Supabase sync: fetch data and start sync engine when authenticated
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  const userId = useAuthStore(s => s.user?.id)
+
+  useEffect(() => {
+    if (!isAuthenticated || !userId) return
+
+    let cancelled = false
+
+    async function initSync() {
+      setHydrating(true)
+      try {
+        await fetchAndHydrate(userId!)
+      } catch (err) {
+        console.error('[sync] fetch failed', err)
+      }
+      setHydrating(false)
+
+      if (!cancelled) {
+        startSync(userId!)
+      }
+    }
+
+    initSync()
+
+    return () => {
+      cancelled = true
+      stopSync()
+    }
+  }, [isAuthenticated, userId])
 
   useEffect(() => {
     // 0. Restore dark mode before paint to prevent flash
