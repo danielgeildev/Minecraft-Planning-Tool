@@ -19,6 +19,8 @@ import { useAuthStore }         from '@/store/useAuthStore'
 import { createClient }         from '@/lib/supabase/client'
 import { fetchAndHydrate }     from '@/lib/supabase/fetchAndHydrate'
 import { startSync, stopSync, setHydrating } from '@/lib/supabase/syncEngine'
+import { getLocalDataCounts, migrateLocalDataToSupabase, type MigrationCounts } from '@/lib/supabase/migration'
+import { MigrationModal }      from '@/components/ui/MigrationModal'
 import { initXpTracking }       from '@/lib/progression/xpTracker'
 import { getLevelFromXp }       from '@/lib/progression/xp'
 
@@ -28,6 +30,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [migrationCounts, setMigrationCounts] = useState<MigrationCounts | null>(null)
 
   // Auth state listener
   useEffect(() => {
@@ -58,7 +61,17 @@ export function AppShell({ children }: AppShellProps) {
     async function initSync() {
       setHydrating(true)
       try {
-        await fetchAndHydrate(userId!)
+        const hasSupabaseData = await fetchAndHydrate(userId!)
+
+        // If Supabase is empty but localStorage has data → offer migration
+        if (!hasSupabaseData) {
+          const counts = getLocalDataCounts()
+          if (counts) {
+            setMigrationCounts(counts)
+            setHydrating(false)
+            return // Wait for user decision before starting sync
+          }
+        }
       } catch (err) {
         console.error('[sync] fetch failed', err)
       }
@@ -142,6 +155,18 @@ export function AppShell({ children }: AppShellProps) {
     }
   }, [])
 
+  async function handleMigrate() {
+    if (!userId) return
+    await migrateLocalDataToSupabase(userId)
+    setMigrationCounts(null)
+    startSync(userId)
+  }
+
+  function handleSkipMigration() {
+    setMigrationCounts(null)
+    if (userId) startSync(userId)
+  }
+
   return (
     <div className="min-h-screen bg-rose-50 dark:bg-slate-950 flex">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -165,6 +190,14 @@ export function AppShell({ children }: AppShellProps) {
           {children}
         </main>
       </div>
+
+      {migrationCounts && (
+        <MigrationModal
+          counts={migrationCounts}
+          onMigrate={handleMigrate}
+          onSkip={handleSkipMigration}
+        />
+      )}
 
       <AchievementToast />
       <XpToast />
