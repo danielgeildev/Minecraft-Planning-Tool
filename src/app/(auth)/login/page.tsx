@@ -36,14 +36,6 @@ export default function LoginPage() {
     router.refresh()
   }
 
-  async function handleGoogleLogin() {
-    const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-  }
-
   return (
     <div className="w-full max-w-sm bg-white dark:bg-slate-800 rounded-2xl border border-rose-100 dark:border-slate-700 p-6 shadow-sm">
       <div className="flex items-center justify-center gap-2 mb-6">
@@ -75,23 +67,10 @@ export default function LoginPage() {
           </p>
         )}
 
-        <Button type="submit" disabled={loading} className="w-full">
+        <Button type="submit" disabled={loading} className="w-full justify-center">
           {loading ? 'Wird angemeldet...' : 'Anmelden'}
         </Button>
       </form>
-
-      <div className="relative my-5">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-rose-100 dark:border-slate-700" />
-        </div>
-        <div className="relative flex justify-center text-xs">
-          <span className="bg-white dark:bg-slate-800 px-2 text-gray-400">oder</span>
-        </div>
-      </div>
-
-      <Button variant="secondary" className="w-full" onClick={handleGoogleLogin}>
-        Mit Google anmelden
-      </Button>
 
       <p className="text-center text-xs text-gray-400 dark:text-slate-500 mt-5">
         Noch kein Account?{' '}
@@ -99,6 +78,18 @@ export default function LoginPage() {
           Registrieren
         </Link>
       </p>
+
+      {/* "Ohne Account" — centered, highlighted */}
+      <button
+        onClick={() => {
+          document.cookie = 'atm10-anonymous-mode=true; path=/; max-age=31536000'
+          router.push('/')
+          router.refresh()
+        }}
+        className="w-full text-center py-2.5 text-sm font-semibold text-pink-500 hover:text-pink-600 dark:text-pink-400 dark:hover:text-pink-300 hover:bg-pink-50 dark:hover:bg-pink-950/30 rounded-xl transition-colors"
+      >
+        Ohne Account fortfahren →
+      </button>
     </div>
   )
 }

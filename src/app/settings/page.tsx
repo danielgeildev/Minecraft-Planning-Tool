@@ -16,6 +16,8 @@ import { useAchievementStore }   from '@/store/useAchievementStore'
 import { useProgressStore }      from '@/store/useProgressStore'
 import { Button }                from '@/components/ui/Button'
 import { ConfirmDialog }         from '@/components/ui/ConfirmDialog'
+import { AccountTab }            from '@/components/settings/AccountTab'
+import { useAuthStore }          from '@/store/useAuthStore'
 import { ACHIEVEMENTS, RARITY_ORDER, RARITY_CONFIG } from '@/lib/achievements'
 import type { QuestNode, ItemNode, Building, Goal, InventoryItem } from '@/types'
 import type { NoteNode } from '@/types/note'
@@ -63,9 +65,10 @@ function isValidBackup(value: unknown): value is BackupData {
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'appearance' | 'backup' | 'achievements' | 'reset'
+type Tab = 'account' | 'appearance' | 'backup' | 'achievements' | 'reset'
 
-const TABS: { id: Tab; label: string; emoji: string }[] = [
+const ALL_TABS: { id: Tab; label: string; emoji: string; authOnly?: boolean }[] = [
+  { id: 'account',      label: 'Account',        emoji: '👤', authOnly: true },
   { id: 'appearance',   label: 'Darstellung',   emoji: '🎨' },
   { id: 'backup',       label: 'Datensicherung', emoji: '💾' },
   { id: 'achievements', label: 'Achievements',   emoji: '🏆' },
@@ -80,8 +83,11 @@ export default function SettingsPage() {
   const { playerName, setPlayerName }    = useSettingsStore()
   const [nameInput, setNameInput]        = useState(playerName)
 
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  const TABS = ALL_TABS.filter(t => !t.authOnly || isAuthenticated)
+
   const searchParams = useSearchParams()
-  const initialTab   = (TABS.some(t => t.id === searchParams.get('tab')) ? searchParams.get('tab') : 'appearance') as Tab
+  const initialTab   = (TABS.some(t => t.id === searchParams.get('tab')) ? searchParams.get('tab') : (isAuthenticated ? 'account' : 'appearance')) as Tab
   const [activeTab, setActiveTab]         = useState<Tab>(initialTab)
   const [importError,   setImportError]   = useState<string | null>(null)
   const [importSuccess, setImportSuccess] = useState(false)
@@ -247,6 +253,9 @@ export default function SettingsPage() {
           </button>
         ))}
       </div>
+
+      {/* ── Account tab ── */}
+      {activeTab === 'account' && <AccountTab />}
 
       {/* ── Appearance tab ── */}
       {activeTab === 'appearance' && (

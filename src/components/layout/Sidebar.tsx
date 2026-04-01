@@ -7,7 +7,7 @@ import { useQuestStore }    from '@/store/useQuestStore'
 import { useNoteStore }     from '@/store/useNoteStore'
 import { useBuildingStore } from '@/store/useBuildingStore'
 import { useAuthStore }    from '@/store/useAuthStore'
-import { UserMenu }        from './UserMenu'
+import { ProfileAvatar }   from './UserMenu'
 import { SyncIndicator }   from '@/components/ui/SyncIndicator'
 
 const navItems = [
@@ -113,24 +113,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Footer */}
         <div className="px-5 py-4 border-t border-rose-50 dark:border-slate-700 flex flex-col gap-3">
-          {isAuthenticated ? (
-            <>
-              <UserMenu />
-              <SyncIndicator />
-            </>
-          ) : (
-            <Link
-              href="/login"
-              onClick={onClose}
-              className="flex items-center justify-center gap-2 rounded-xl bg-pink-400 text-white px-3 py-2 text-xs font-semibold hover:bg-pink-500 transition-colors"
-            >
-              Anmelden
-            </Link>
-          )}
-          <div className="rounded-xl bg-rose-50 dark:bg-slate-800 p-3">
-            <p className="text-xs font-medium text-rose-500 dark:text-rose-400">🌸 Alina&apos;s Quest Tracker</p>
-            <p className="text-xs text-rose-400 dark:text-slate-500 mt-0.5">Viel Spaß beim spielen!</p>
+          <div className="flex items-center justify-between">
+            <ProfileAvatar />
+            <div className="rounded-xl bg-rose-50 dark:bg-slate-800 p-3 flex-1 ml-3">
+              <p className="text-xs font-medium text-rose-500 dark:text-rose-400">🌸 Alina&apos;s Quest Tracker</p>
+              <p className="text-xs text-rose-400 dark:text-slate-500 mt-0.5">Viel Spaß beim spielen!</p>
+            </div>
           </div>
+          {isAuthenticated && <SyncIndicator />}
         </div>
       </aside>
     </>

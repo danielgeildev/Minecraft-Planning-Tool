@@ -15,6 +15,8 @@ import { ACHIEVEMENTS, RARITY_CONFIG }          from '@/lib/achievements'
 import { ProgressWidget }                       from '@/components/progression/ProgressWidget'
 import { useInventoryStore }                    from '@/store/useInventoryStore'
 import { getGlobalNextBestAction }              from '@/lib/planning/advanced'
+import { useAuthStore }                        from '@/store/useAuthStore'
+import { AuthPromptBanner }                    from '@/components/ui/AuthPromptBanner'
 
 function StatCard({ emoji, label, value, sub, href }: {
   emoji: string; label: string; value: number; sub: string; href: string
@@ -91,8 +93,13 @@ export default function DashboardPage() {
     [unlockedIds],
   )
 
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto lg:max-w-none lg:px-8">
+
+      {/* Auth prompt for anonymous users */}
+      {!isAuthenticated && <AuthPromptBanner />}
 
       {/* Hero */}
       <div className="mb-6 flex items-center gap-4">
