@@ -15,6 +15,8 @@ import { useSettingsStore }     from '@/store/useSettingsStore'
 import { useAchievementStore }  from '@/store/useAchievementStore'
 import { useProgressStore }     from '@/store/useProgressStore'
 import { useInventoryStore }    from '@/store/useInventoryStore'
+import { useAuthStore }         from '@/store/useAuthStore'
+import { createClient }         from '@/lib/supabase/client'
 import { initXpTracking }       from '@/lib/progression/xpTracker'
 import { getLevelFromXp }       from '@/lib/progression/xp'
 
@@ -24,6 +26,23 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Auth state listener
+  useEffect(() => {
+    const supabase = createClient()
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      useAuthStore.getState().setUser(user)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        useAuthStore.getState().setUser(session?.user ?? null)
+      },
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     // 0. Restore dark mode before paint to prevent flash

@@ -6,6 +6,8 @@ import { X } from 'lucide-react'
 import { useQuestStore }    from '@/store/useQuestStore'
 import { useNoteStore }     from '@/store/useNoteStore'
 import { useBuildingStore } from '@/store/useBuildingStore'
+import { useAuthStore }    from '@/store/useAuthStore'
+import { UserMenu }        from './UserMenu'
 
 const navItems = [
   { href: '/',           label: 'Dashboard',      emoji: '🏠' },
@@ -29,6 +31,7 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname()
 
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   const activeQuests    = useQuestStore(s => s.quests.filter(q => q.status === 'in-progress').length)
   const activeBuildings = useBuildingStore(s => s.buildings.filter(b => b.status === 'in-progress').length)
   const noteCount       = useNoteStore(s => s.notes.length)
@@ -108,7 +111,18 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-rose-50 dark:border-slate-700">
+        <div className="px-5 py-4 border-t border-rose-50 dark:border-slate-700 flex flex-col gap-3">
+          {isAuthenticated ? (
+            <UserMenu />
+          ) : (
+            <Link
+              href="/login"
+              onClick={onClose}
+              className="flex items-center justify-center gap-2 rounded-xl bg-pink-400 text-white px-3 py-2 text-xs font-semibold hover:bg-pink-500 transition-colors"
+            >
+              Anmelden
+            </Link>
+          )}
           <div className="rounded-xl bg-rose-50 dark:bg-slate-800 p-3">
             <p className="text-xs font-medium text-rose-500 dark:text-rose-400">🌸 Alina&apos;s Quest Tracker</p>
             <p className="text-xs text-rose-400 dark:text-slate-500 mt-0.5">Viel Spaß beim spielen!</p>

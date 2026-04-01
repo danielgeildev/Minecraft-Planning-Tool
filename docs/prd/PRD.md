@@ -45,7 +45,19 @@ Won't Have (this iteration):
 - Inventory can be passed as `[]` until inventory UI is built
 - No new dependencies required
 
-**Status:** Planned
+**Status:** In Progress (PR #27)
+
+---
+
+### User Accounts & Cloud Persistence (Supabase)
+
+**Problem:** All data is stored in localStorage — no multi-device sync, no backup, data lost on browser switch.
+
+**Solution:** Supabase Auth + PostgreSQL backend with dual-layer Zustand sync. 5 phases: Auth UI → Sync Engine → Full Migration → Polish → Feature Flag.
+
+**Users:** End users (players)
+
+**Status:** In Progress (Phase 1)
 
 ---
 
