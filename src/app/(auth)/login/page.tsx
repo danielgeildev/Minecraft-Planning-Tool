@@ -99,6 +99,24 @@ export default function LoginPage() {
           Registrieren
         </Link>
       </p>
+
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-rose-100 dark:border-slate-700" />
+        </div>
+      </div>
+
+      <Button
+        variant="ghost"
+        className="w-full"
+        onClick={() => {
+          document.cookie = 'atm10-anonymous-mode=true; path=/; max-age=31536000'
+          router.push('/')
+          router.refresh()
+        }}
+      >
+        Ohne Account fortfahren
+      </Button>
     </div>
   )
 }

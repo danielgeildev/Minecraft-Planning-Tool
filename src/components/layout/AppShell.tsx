@@ -44,6 +44,10 @@ export function AppShell({ children }: AppShellProps) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         useAuthStore.getState().setUser(session?.user ?? null)
+        // Clear anonymous mode when user authenticates
+        if (session?.user) {
+          document.cookie = 'atm10-anonymous-mode=; path=/; max-age=0'
+        }
       },
     )
 

@@ -34,8 +34,11 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/register') ||
     request.nextUrl.pathname.startsWith('/auth/')
 
-  // Redirect unauthenticated users to login (skip auth routes)
-  if (!user && !isAuthRoute) {
+  // Allow anonymous mode: check cookie (set client-side via localStorage)
+  const isAnonymous = request.cookies.get('atm10-anonymous-mode')?.value === 'true'
+
+  // Redirect unauthenticated users to login (skip auth routes and anonymous users)
+  if (!user && !isAuthRoute && !isAnonymous) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
