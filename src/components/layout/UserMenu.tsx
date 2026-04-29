@@ -94,8 +94,11 @@ export function ProfileAvatar() {
     <div className="relative flex-shrink-0">
       <button
         onClick={() => setMenuOpen(!menuOpen)}
-        className="w-9 h-9 rounded-full overflow-hidden border-2 border-pink-200 dark:border-pink-800 hover:border-pink-400 transition-colors"
+        className="w-9 h-9 rounded-full overflow-hidden border-2 border-pink-200 dark:border-pink-800 hover:border-pink-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
         title={displayName}
+        aria-label={`Benutzermenü für ${displayName}`}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
       >
         {avatarUrl ? (
           <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />

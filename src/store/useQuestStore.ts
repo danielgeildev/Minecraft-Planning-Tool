@@ -3,7 +3,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { QuestNode, QuestStatus, Dependency } from '@/types'
-import { mockQuests } from '@/data/mockData'
 
 interface QuestStore {
   quests: QuestNode[]
@@ -42,7 +41,7 @@ export const useQuestStore = create<QuestStore>()(
 
       initializeIfNeeded: () => {
         if (get()._dataVersion === 0) {
-          set({ quests: mockQuests, _dataVersion: 1 })
+          set({ _dataVersion: 1 })
         }
       },
 

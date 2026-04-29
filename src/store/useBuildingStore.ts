@@ -3,7 +3,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Building } from '@/types'
-import { mockBuildings } from '@/data/mockData'
 
 interface BuildingStore {
   buildings: Building[]
@@ -36,7 +35,7 @@ export const useBuildingStore = create<BuildingStore>()(
 
       initializeIfNeeded: () => {
         if (get()._dataVersion === 0) {
-          set({ buildings: mockBuildings, _dataVersion: 1 })
+          set({ _dataVersion: 1 })
         }
       },
 
