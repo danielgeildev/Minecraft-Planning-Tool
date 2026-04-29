@@ -3,7 +3,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { ItemNode, ItemStatus } from '@/types'
-import { mockItems } from '@/data/mockData'
 
 interface ItemStore {
   items: ItemNode[]
@@ -38,7 +37,7 @@ export const useItemStore = create<ItemStore>()(
 
       initializeIfNeeded: () => {
         if (get()._dataVersion === 0) {
-          set({ items: mockItems, _dataVersion: 1 })
+          set({ _dataVersion: 1 })
         }
       },
 

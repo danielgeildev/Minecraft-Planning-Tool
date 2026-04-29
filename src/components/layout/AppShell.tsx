@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, type ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
 import { Sidebar }              from './Sidebar'
 import { AchievementToast }     from '@/components/ui/AchievementToast'
@@ -24,6 +25,7 @@ import { MigrationModal }      from '@/components/ui/MigrationModal'
 import { SyncErrorToast }      from '@/components/ui/SyncErrorToast'
 import { initXpTracking }       from '@/lib/progression/xpTracker'
 import { getLevelFromXp }       from '@/lib/progression/xp'
+import { markHydrated }         from '@/hooks/useHasHydrated'
 
 interface AppShellProps {
   children: ReactNode
@@ -32,6 +34,11 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [migrationCounts, setMigrationCounts] = useState<MigrationCounts | null>(null)
+  const pathname = usePathname()
+  const isAuthRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/auth/')
 
   // Auth state listener
   useEffect(() => {
@@ -46,7 +53,7 @@ export function AppShell({ children }: AppShellProps) {
         useAuthStore.getState().setUser(session?.user ?? null)
         // Clear anonymous mode when user authenticates
         if (session?.user) {
-          document.cookie = 'atm10-anonymous-mode=; path=/; max-age=0'
+          document.cookie = 'atm10-anonymous-mode=; path=/; max-age=0; SameSite=Lax'
         }
       },
     )
@@ -96,10 +103,7 @@ export function AppShell({ children }: AppShellProps) {
   }, [isAuthenticated, userId])
 
   useEffect(() => {
-    // 0. Restore dark mode before paint to prevent flash
-    if (localStorage.getItem('atm10-dark-mode') === 'true') {
-      document.documentElement.classList.add('dark')
-    }
+    // Dark mode is applied by an inline <script> in RootLayout before first paint.
 
     // 1. Rehydrate all stores from localStorage
     useQuestStore.persist.rehydrate()
@@ -121,6 +125,10 @@ export function AppShell({ children }: AppShellProps) {
     useItemStore.getState().initializeIfNeeded()
     useGoalStore.getState().initializeIfNeeded()
     useNoteStore.getState().initializeIfNeeded()
+
+    // Signal to the rest of the tree that persisted state is now readable.
+    // Components gated on useHasHydrated() will swap from skeleton to real UI.
+    markHydrated()
 
     // 3. Check achievements once after hydration
     const checkNow = () => {
@@ -172,6 +180,10 @@ export function AppShell({ children }: AppShellProps) {
     if (userId) startSync(userId)
   }
 
+  if (isAuthRoute) {
+    return <>{children}</>
+  }
+
   return (
     <div className="min-h-screen bg-rose-50 dark:bg-slate-950 flex">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -181,12 +193,13 @@ export function AppShell({ children }: AppShellProps) {
         <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-900 border-b border-rose-100 dark:border-slate-700">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-slate-800 text-gray-600 dark:text-slate-300 transition-colors"
+            aria-label="Navigation öffnen"
+            className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-slate-800 text-gray-600 dark:text-slate-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
           >
-            <Menu size={20} />
+            <Menu size={20} aria-hidden="true" />
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-lg">⛏️</span>
+            <span className="text-lg" aria-hidden="true">⛏️</span>
             <span className="font-bold text-sm text-gray-800 dark:text-slate-100">ATM10 Tracker</span>
           </div>
         </header>

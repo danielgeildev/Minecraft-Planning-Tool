@@ -53,6 +53,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       )}
 
       <aside
+        aria-label="Hauptnavigation"
         className={`
           fixed top-0 left-0 z-50 h-full w-64 bg-white dark:bg-slate-900 border-r border-rose-100 dark:border-slate-700
           flex flex-col transition-transform duration-300 ease-in-out
@@ -71,9 +72,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </div>
           <button
             onClick={onClose}
-            className="lg:hidden p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-slate-800 text-gray-400 dark:text-slate-500 transition-colors"
+            aria-label="Navigation schließen"
+            className="lg:hidden p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-slate-800 text-gray-400 dark:text-slate-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
           >
-            <X size={16} />
+            <X size={16} aria-hidden="true" />
           </button>
         </div>
 
@@ -86,6 +88,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 key={href}
                 href={href}
                 onClick={onClose}
+                aria-current={isActive ? 'page' : undefined}
                 className={`
                   flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                   transition-colors duration-150
