@@ -15,8 +15,8 @@ const safeStorage = createJSONStorage(() =>
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
-      playerName: 'Alina',
-      setPlayerName: (name) => set({ playerName: name.trim() || 'Alina' }),
+      playerName: '',
+      setPlayerName: (name) => set({ playerName: name.trim() }),
     }),
     {
       name:           'atm10-settings',

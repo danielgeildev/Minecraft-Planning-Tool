@@ -1,6 +1,6 @@
 # ⛏️ ATM10 Planner — Alina's Minecraft Planning Tool
 
-Eine persönliche Web-App zum Planen und Tracken von Quests, Gebäuden und Items für das Minecraft-Modpack **All the Mods 10**. Die App ist vom reinen Tracker zum **Planungs- und Entscheidungs-Tool** gewachsen — mit Ziel-System, Ressourcenkalkulation, interaktivem Dependency-Graph und einem strukturierten Notizen-System.
+Eine Web-App zum Planen und Tracken von Quests, Gebäuden und Items für das Minecraft-Modpack **All the Mods 10**. Ursprünglich für meine Freundin Alina gebaut, die im Modpack schnell den Überblick verloren hat — mittlerweile vom reinen Tracker zum **Planungs- und Entscheidungs-Tool** gewachsen, mit Ziel-System, Ressourcenkalkulation, interaktivem Dependency-Graph und einem strukturierten Notizen-System.
 
 ---
 

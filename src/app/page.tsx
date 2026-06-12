@@ -17,6 +17,8 @@ import { useInventoryStore }                    from '@/store/useInventoryStore'
 import { getGlobalNextBestAction }              from '@/lib/planning/advanced'
 import { useAuthStore }                        from '@/store/useAuthStore'
 import { AuthPromptBanner }                    from '@/components/ui/AuthPromptBanner'
+import { useHasHydrated }                      from '@/hooks/useHasHydrated'
+import DashboardLoading                        from './loading'
 
 function StatCard({ emoji, label, value, sub, href }: {
   emoji: string; label: string; value: number; sub: string; href: string
@@ -43,7 +45,7 @@ export default function DashboardPage() {
   const buildings = useBuildingStore((s) => s.buildings)
   const items     = useItemStore((s) => s.items)
   const { goals } = useGoalStore()
-  const playerName   = useSettingsStore(s => s.playerName)
+  const settingsName = useSettingsStore(s => s.playerName)
   const unlockedIds        = useAchievementStore(s => s.unlockedIds)
   const manualUnlock       = useAchievementStore(s => s.manualUnlock)
   const replayAchievement  = useAchievementStore(s => s.replayAchievement)
@@ -94,6 +96,31 @@ export default function DashboardPage() {
   )
 
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  const authUser        = useAuthStore(s => s.user)
+  const hasHydrated     = useHasHydrated()
+
+  // Stable per-page-load fallback so the greeting doesn't flicker between renders.
+  const guestName = useMemo(() => {
+    const candidates = [
+      'Abenteurer', 'Pionier', 'Entdecker', 'Bergbauer',
+      'Crafter', 'Diamantsucher', 'Steve', 'Alex',
+    ]
+    return candidates[Math.floor(Math.random() * candidates.length)]
+  }, [])
+
+  const greetingName = (() => {
+    if (!isAuthenticated) return guestName
+    const trimmed = settingsName?.trim()
+    if (trimmed) return trimmed
+    const metaName = authUser?.user_metadata?.player_name as string | undefined
+    if (metaName?.trim()) return metaName.trim()
+    const emailPrefix = authUser?.email?.split('@')[0]
+    return emailPrefix || 'Spieler'
+  })()
+
+  if (!hasHydrated) {
+    return <DashboardLoading />
+  }
 
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto lg:max-w-none lg:px-8">
@@ -113,7 +140,7 @@ export default function DashboardPage() {
           <img src="/filbert-filibert.gif" alt="Felix" className="w-full h-full object-contain" draggable={false} />
         </a>
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Hallo {playerName}! 🌸</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-slate-100">Hallo {greetingName}! 🌸</h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Dein ATM10 Fortschritts-Dashboard</p>
         </div>
       </div>

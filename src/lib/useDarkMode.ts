@@ -4,37 +4,43 @@ import { useCallback, useSyncExternalStore } from 'react'
 
 const STORAGE_KEY = 'atm10-dark-mode'
 
-// Module-level listeners so all hook instances stay in sync within the tab;
-// the 'storage' event covers changes from other tabs.
-let listeners: (() => void)[] = []
+function prefersDark() {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+}
 
-function subscribe(listener: () => void) {
-  listeners.push(listener)
-  window.addEventListener('storage', listener)
+function readDark() {
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (stored === 'true') return true
+  if (stored === 'false') return false
+  return prefersDark()
+}
+
+function subscribe(onChange: () => void) {
+  window.addEventListener('storage', onChange)
+  const mq = window.matchMedia('(prefers-color-scheme: dark)')
+  mq.addEventListener('change', onChange)
   return () => {
-    listeners = listeners.filter(l => l !== listener)
-    window.removeEventListener('storage', listener)
+    window.removeEventListener('storage', onChange)
+    mq.removeEventListener('change', onChange)
   }
 }
 
-function getSnapshot() {
-  return localStorage.getItem(STORAGE_KEY) === 'true'
-}
-
-// Server snapshot is always false; AppShell applies the `dark` class to <html>
-// before first paint, so there is no visual flash.
+// SSR: render light mode. RootLayout's inline init script applies the `dark`
+// class to <html> before first paint, so there is no flash.
 function getServerSnapshot() {
   return false
 }
 
 export function useDarkMode() {
-  const dark = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  const dark = useSyncExternalStore(subscribe, readDark, getServerSnapshot)
 
   const toggle = useCallback(() => {
-    const next = !getSnapshot()
+    const next = !readDark()
     localStorage.setItem(STORAGE_KEY, String(next))
     document.documentElement.classList.toggle('dark', next)
-    listeners.forEach(l => l())
+    // useSyncExternalStore won't re-run on same-window localStorage writes —
+    // dispatch a synthetic storage event so subscribers re-read the snapshot.
+    window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }))
   }, [])
 
   return { dark, toggle }

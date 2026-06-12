@@ -1,17 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input }  from '@/components/ui/Input'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackError = searchParams.get('error')
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError]       = useState<string | null>(null)
+  const [error, setError]       = useState<string | null>(
+    callbackError === 'auth' ? 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.' : null,
+  )
   const [loading, setLoading]   = useState(false)
 
   async function handleEmailLogin(e: React.FormEvent) {
@@ -44,32 +48,35 @@ export default function LoginPage() {
       </div>
 
       <form onSubmit={handleEmailLogin} className="flex flex-col gap-4">
-        <Input
-          label="E-Mail"
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-        />
-        <Input
-          label="Passwort"
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-        />
+        <fieldset disabled={loading} className="contents">
+          <Input
+            label="E-Mail"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+            autoFocus
+          />
+          <Input
+            label="Passwort"
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
 
-        {error && (
-          <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950/40 rounded-lg px-3 py-2">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950/40 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
 
-        <Button type="submit" disabled={loading} className="w-full justify-center">
-          {loading ? 'Wird angemeldet...' : 'Anmelden'}
-        </Button>
+          <Button type="submit" disabled={loading} className="w-full justify-center">
+            {loading ? 'Wird angemeldet...' : 'Anmelden'}
+          </Button>
+        </fieldset>
       </form>
 
       <p className="text-center text-xs text-gray-400 dark:text-slate-500 mt-5">
@@ -81,8 +88,10 @@ export default function LoginPage() {
 
       {/* "Ohne Account" — centered, highlighted */}
       <button
+        type="button"
         onClick={() => {
-          document.cookie = 'atm10-anonymous-mode=true; path=/; max-age=31536000'
+          const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+          document.cookie = `atm10-anonymous-mode=true; path=/; max-age=31536000; SameSite=Lax${secure}`
           router.push('/')
           router.refresh()
         }}
@@ -90,6 +99,17 @@ export default function LoginPage() {
       >
         Ohne Account fortfahren →
       </button>
+      <p className="text-center text-[11px] text-gray-400 dark:text-slate-500 mt-1 px-2">
+        Daten werden nur in diesem Browser gespeichert. Anmelden für Cloud-Sync.
+      </p>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

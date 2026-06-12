@@ -12,7 +12,7 @@ import { Badge }             from '@/components/ui/Badge'
 import { EmptyState }        from '@/components/ui/EmptyState'
 import { Button }            from '@/components/ui/Button'
 import { getNodeTitle, isNodeDone, type AnyNode } from '@/types'
-import { useHydrated } from '@/lib/useHydrated'
+import { useHasHydrated } from '@/hooks/useHasHydrated'
 import {
   getNextStepsForGoal,
   getBlockingNodesForGoal,
@@ -46,7 +46,7 @@ function nodeEmoji(node: AnyNode): string {
 }
 
 export default function SpielplanPage() {
-  const hydrated = useHydrated()
+  const hydrated = useHasHydrated()
   const { getRootGoals, getSubgoals, removeGoal } = useGoalStore()
   const { quests }    = useQuestStore()
   const { items }     = useItemStore()

@@ -3,7 +3,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Goal } from '@/types'
-import { mockGoals } from '@/data/mockData'
 
 interface GoalStore {
   goals: Goal[]
@@ -38,7 +37,7 @@ export const useGoalStore = create<GoalStore>()(
 
       initializeIfNeeded: () => {
         if (get()._dataVersion === 0) {
-          set({ goals: mockGoals, _dataVersion: 1 })
+          set({ _dataVersion: 1 })
         }
       },
 

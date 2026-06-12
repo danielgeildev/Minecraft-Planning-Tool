@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
 import { Sidebar }              from './Sidebar'
@@ -30,36 +30,21 @@ import { MergeModal }          from '@/components/ui/MergeModal'
 import { SyncErrorToast }      from '@/components/ui/SyncErrorToast'
 import { initXpTracking }       from '@/lib/progression/xpTracker'
 import { getLevelFromXp }       from '@/lib/progression/xp'
+import { markHydrated }         from '@/hooks/useHasHydrated'
 
 interface AppShellProps {
   children: ReactNode
 }
 
-/**
- * Auth pages (login/register/callback) render without sidebar, toasts, and
- * store/sync initialization — they bring their own standalone layout.
- */
 export function AppShell({ children }: AppShellProps) {
-  const pathname = usePathname()
-  const isAuthPage =
-    pathname === '/login' || pathname === '/register' || pathname.startsWith('/auth/')
-
-  // Restore dark mode before paint — for auth pages and app pages alike
-  useEffect(() => {
-    if (localStorage.getItem('atm10-dark-mode') === 'true') {
-      document.documentElement.classList.add('dark')
-    }
-  }, [])
-
-  if (isAuthPage) return <>{children}</>
-  return <AppShellInner>{children}</AppShellInner>
-}
-
-function AppShellInner({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [migrationCounts, setMigrationCounts] = useState<MigrationCounts | null>(null)
   const [mergeSnapshot, setMergeSnapshot]     = useState<LocalDataSnapshot | null>(null)
-  const closeSidebar = useCallback(() => setSidebarOpen(false), [])
+  const pathname = usePathname()
+  const isAuthRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/auth/')
 
   // Auth state listener
   useEffect(() => {
@@ -74,7 +59,7 @@ function AppShellInner({ children }: AppShellProps) {
         useAuthStore.getState().setUser(session?.user ?? null)
         // Clear anonymous mode when user authenticates
         if (session?.user) {
-          document.cookie = 'atm10-anonymous-mode=; path=/; max-age=0'
+          document.cookie = 'atm10-anonymous-mode=; path=/; max-age=0; SameSite=Lax'
         }
       },
     )
@@ -133,6 +118,8 @@ function AppShellInner({ children }: AppShellProps) {
   }, [isAuthenticated, userId])
 
   useEffect(() => {
+    // Dark mode is applied by an inline <script> in RootLayout before first paint.
+
     // 1. Rehydrate all stores from localStorage
     useQuestStore.persist.rehydrate()
     useBuildingStore.persist.rehydrate()
@@ -147,13 +134,16 @@ function AppShellInner({ children }: AppShellProps) {
     // 1b. Queue any already-unlocked achievements the user hasn't seen a toast for yet
     useAchievementStore.getState().queueUnseen()
 
-    // 2. Load mock data only on very first run (_dataVersion === 0)
-    const isFirstRun = useQuestStore.getState()._dataVersion === 0
+    // 2. Mark stores as initialized on very first run (_dataVersion === 0)
     useQuestStore.getState().initializeIfNeeded()
     useBuildingStore.getState().initializeIfNeeded()
     useItemStore.getState().initializeIfNeeded()
     useGoalStore.getState().initializeIfNeeded()
     useNoteStore.getState().initializeIfNeeded()
+
+    // Signal to the rest of the tree that persisted state is now readable.
+    // Components gated on useHasHydrated() will swap from skeleton to real UI.
+    markHydrated()
 
     // 3. Check achievements once after hydration
     const checkNow = () => {
@@ -170,15 +160,6 @@ function AppShellInner({ children }: AppShellProps) {
       })
     }
     checkNow()
-
-    // 3b. On the very first run the mock data instantly unlocks achievements
-    // the user didn't earn — mark those as seen instead of celebrating them
-    if (isFirstRun) {
-      useAchievementStore.setState(s => ({
-        seenIds:      [...new Set([...s.seenIds, ...s.pendingQueue])],
-        pendingQueue: [],
-      }))
-    }
 
     // 4. Subscribe to all relevant stores to check achievements on every change
     const unsubQuests    = useQuestStore.subscribe(checkNow)
@@ -233,21 +214,26 @@ function AppShellInner({ children }: AppShellProps) {
     if (userId) startSync(userId)
   }
 
+  if (isAuthRoute) {
+    return <>{children}</>
+  }
+
   return (
     <div className="min-h-screen bg-rose-50 dark:bg-slate-950 flex">
-      <Sidebar open={sidebarOpen} onClose={closeSidebar} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-900 border-b border-rose-100 dark:border-slate-700">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-slate-800 text-gray-600 dark:text-slate-300 transition-colors"
+            aria-label="Navigation öffnen"
+            className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-slate-800 text-gray-600 dark:text-slate-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-400"
           >
-            <Menu size={20} />
+            <Menu size={20} aria-hidden="true" />
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-lg">⛏️</span>
+            <span className="text-lg" aria-hidden="true">⛏️</span>
             <span className="font-bold text-sm text-gray-800 dark:text-slate-100">ATM10 Tracker</span>
           </div>
         </header>
