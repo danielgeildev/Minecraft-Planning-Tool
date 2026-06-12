@@ -232,7 +232,7 @@ export default function SettingsPage() {
     <div className="px-4 py-6 max-w-2xl mx-auto lg:max-w-3xl lg:px-8">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-800 dark:text-slate-100">⚙️ Einstellungen</h1>
-        <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Darstellung, Datensicherung & Achievements</p>
+        <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Profil, Darstellung, Datensicherung & Achievements</p>
       </div>
 
       {/* Tab bar */}
