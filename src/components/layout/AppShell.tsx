@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
 import { Sidebar }              from './Sidebar'
 import { AchievementToast }     from '@/components/ui/AchievementToast'
@@ -19,8 +20,13 @@ import { useAuthStore }         from '@/store/useAuthStore'
 import { createClient }         from '@/lib/supabase/client'
 import { fetchAndHydrate }     from '@/lib/supabase/fetchAndHydrate'
 import { startSync, stopSync, setHydrating } from '@/lib/supabase/syncEngine'
-import { getLocalDataCounts, migrateLocalDataToSupabase, type MigrationCounts } from '@/lib/supabase/migration'
+import {
+  getLocalDataCounts, migrateLocalDataToSupabase,
+  hasUserModifiedLocalData, captureLocalSnapshot, mergeSnapshotIntoSupabase,
+  type MigrationCounts, type LocalDataSnapshot,
+} from '@/lib/supabase/migration'
 import { MigrationModal }      from '@/components/ui/MigrationModal'
+import { MergeModal }          from '@/components/ui/MergeModal'
 import { SyncErrorToast }      from '@/components/ui/SyncErrorToast'
 import { initXpTracking }       from '@/lib/progression/xpTracker'
 import { getLevelFromXp }       from '@/lib/progression/xp'
@@ -29,9 +35,31 @@ interface AppShellProps {
   children: ReactNode
 }
 
+/**
+ * Auth pages (login/register/callback) render without sidebar, toasts, and
+ * store/sync initialization — they bring their own standalone layout.
+ */
 export function AppShell({ children }: AppShellProps) {
+  const pathname = usePathname()
+  const isAuthPage =
+    pathname === '/login' || pathname === '/register' || pathname.startsWith('/auth/')
+
+  // Restore dark mode before paint — for auth pages and app pages alike
+  useEffect(() => {
+    if (localStorage.getItem('atm10-dark-mode') === 'true') {
+      document.documentElement.classList.add('dark')
+    }
+  }, [])
+
+  if (isAuthPage) return <>{children}</>
+  return <AppShellInner>{children}</AppShellInner>
+}
+
+function AppShellInner({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [migrationCounts, setMigrationCounts] = useState<MigrationCounts | null>(null)
+  const [mergeSnapshot, setMergeSnapshot]     = useState<LocalDataSnapshot | null>(null)
+  const closeSidebar = useCallback(() => setSidebarOpen(false), [])
 
   // Auth state listener
   useEffect(() => {
@@ -66,16 +94,25 @@ export function AppShell({ children }: AppShellProps) {
     async function initSync() {
       setHydrating(true)
       try {
+        // Capture local (anonymous) work BEFORE hydration overwrites the stores
+        const localSnapshot = hasUserModifiedLocalData() ? captureLocalSnapshot() : null
+
         const hasSupabaseData = await fetchAndHydrate(userId!)
 
-        // If Supabase is empty but localStorage has data → offer migration
         if (!hasSupabaseData) {
+          // Supabase is empty but localStorage has data → offer migration
           const counts = getLocalDataCounts()
           if (counts) {
             setMigrationCounts(counts)
             setHydrating(false)
             return // Wait for user decision before starting sync
           }
+        } else if (localSnapshot) {
+          // Cloud has data AND this device had user-modified local data →
+          // let the user decide instead of silently discarding the local work
+          setMergeSnapshot(localSnapshot)
+          setHydrating(false)
+          return // Wait for user decision before starting sync
         }
       } catch (err) {
         console.error('[sync] fetch failed', err)
@@ -96,11 +133,6 @@ export function AppShell({ children }: AppShellProps) {
   }, [isAuthenticated, userId])
 
   useEffect(() => {
-    // 0. Restore dark mode before paint to prevent flash
-    if (localStorage.getItem('atm10-dark-mode') === 'true') {
-      document.documentElement.classList.add('dark')
-    }
-
     // 1. Rehydrate all stores from localStorage
     useQuestStore.persist.rehydrate()
     useBuildingStore.persist.rehydrate()
@@ -116,6 +148,7 @@ export function AppShell({ children }: AppShellProps) {
     useAchievementStore.getState().queueUnseen()
 
     // 2. Load mock data only on very first run (_dataVersion === 0)
+    const isFirstRun = useQuestStore.getState()._dataVersion === 0
     useQuestStore.getState().initializeIfNeeded()
     useBuildingStore.getState().initializeIfNeeded()
     useItemStore.getState().initializeIfNeeded()
@@ -137,6 +170,15 @@ export function AppShell({ children }: AppShellProps) {
       })
     }
     checkNow()
+
+    // 3b. On the very first run the mock data instantly unlocks achievements
+    // the user didn't earn — mark those as seen instead of celebrating them
+    if (isFirstRun) {
+      useAchievementStore.setState(s => ({
+        seenIds:      [...new Set([...s.seenIds, ...s.pendingQueue])],
+        pendingQueue: [],
+      }))
+    }
 
     // 4. Subscribe to all relevant stores to check achievements on every change
     const unsubQuests    = useQuestStore.subscribe(checkNow)
@@ -172,9 +214,28 @@ export function AppShell({ children }: AppShellProps) {
     if (userId) startSync(userId)
   }
 
+  async function handleMerge() {
+    if (!userId || !mergeSnapshot) return
+    await mergeSnapshotIntoSupabase(userId, mergeSnapshot)
+    // Re-fetch so the stores show the merged result
+    setHydrating(true)
+    try {
+      await fetchAndHydrate(userId)
+    } finally {
+      setHydrating(false)
+    }
+    setMergeSnapshot(null)
+    startSync(userId)
+  }
+
+  function handleDiscardLocal() {
+    setMergeSnapshot(null)
+    if (userId) startSync(userId)
+  }
+
   return (
     <div className="min-h-screen bg-rose-50 dark:bg-slate-950 flex">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar open={sidebarOpen} onClose={closeSidebar} />
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile top bar */}
@@ -201,6 +262,14 @@ export function AppShell({ children }: AppShellProps) {
           counts={migrationCounts}
           onMigrate={handleMigrate}
           onSkip={handleSkipMigration}
+        />
+      )}
+
+      {mergeSnapshot && (
+        <MergeModal
+          snapshot={mergeSnapshot}
+          onMerge={handleMerge}
+          onDiscard={handleDiscardLocal}
         />
       )}
 

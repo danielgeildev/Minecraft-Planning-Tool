@@ -27,6 +27,10 @@ import type { NoteNode } from '@/types/note'
 let unsubscribers: (() => void)[] = []
 let hydrating = false
 
+// Pending debounce timers — tracked so stopSync() can cancel writes that
+// haven't fired yet (e.g. edit → logout within the debounce window).
+const pendingTimers = new Set<ReturnType<typeof setTimeout>>()
+
 export function setHydrating(v: boolean) { hydrating = v }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -37,7 +41,12 @@ function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ((...args: any[]) => {
     clearTimeout(timer)
-    timer = setTimeout(() => fn(...args), ms)
+    pendingTimers.delete(timer)
+    timer = setTimeout(() => {
+      pendingTimers.delete(timer)
+      fn(...args)
+    }, ms)
+    pendingTimers.add(timer)
   }) as T
 }
 
@@ -285,6 +294,10 @@ export function startSync(userId: string) {
 // ─── stopSync ────────────────────────────────────────────────────────────────
 
 export function stopSync() {
+  // Cancel debounced writes that haven't fired yet — after logout they would
+  // run against a signed-out client (RLS rejects them) or write stale data.
+  pendingTimers.forEach(t => clearTimeout(t))
+  pendingTimers.clear()
   unsubscribers.forEach(fn => fn())
   unsubscribers = []
   useSyncStore.getState().setStatus('idle')

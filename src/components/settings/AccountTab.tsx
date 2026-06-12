@@ -1,14 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, KeyRound, AlertTriangle } from 'lucide-react'
+import { LogOut, KeyRound, AlertTriangle, Copy, Check, Users } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore }  from '@/store/useAuthStore'
+import { resetAllStores } from '@/store/resetAllStores'
 import { stopSync }      from '@/lib/supabase/syncEngine'
 import { Button }        from '@/components/ui/Button'
 import { Input }         from '@/components/ui/Input'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { getOwnProfileSummary } from '@/lib/supabase/friends'
 
 export function AccountTab() {
   const router = useRouter()
@@ -20,13 +22,54 @@ export function AccountTab() {
   const [pwError, setPwError]                   = useState<string | null>(null)
   const [pwSuccess, setPwSuccess]               = useState(false)
   const [pwLoading, setPwLoading]               = useState(false)
+  const [friendCode, setFriendCode]             = useState('')
+  const [profileLoading, setProfileLoading]     = useState(true)
+  const [copySuccess, setCopySuccess]           = useState(false)
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteError, setDeleteError]             = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user) {
+      setProfileLoading(false)
+      return
+    }
+
+    let cancelled = false
+
+    async function loadProfileSummary() {
+      try {
+        const summary = await getOwnProfileSummary()
+        if (!cancelled) {
+          setFriendCode(summary.friendCode)
+        }
+      } catch (err) {
+        console.error('[account] failed to load profile summary', err)
+      } finally {
+        if (!cancelled) {
+          setProfileLoading(false)
+        }
+      }
+    }
+
+    void loadProfileSummary()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   if (!user) return null
 
   const provider = user.app_metadata?.provider ?? 'email'
   const isEmailAuth = provider === 'email'
+
+  async function handleCopyCode() {
+    if (!friendCode) return
+    await navigator.clipboard.writeText(friendCode)
+    setCopySuccess(true)
+    window.setTimeout(() => setCopySuccess(false), 1800)
+  }
 
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault()
@@ -61,6 +104,9 @@ export function AccountTab() {
     stopSync()
     const supabase = createClient()
     await supabase.auth.signOut()
+    // Wipe stores + localStorage so the next user on this device
+    // doesn't see this account's data
+    resetAllStores()
     useAuthStore.getState().setUser(null)
     router.push('/login')
     router.refresh()
@@ -85,6 +131,26 @@ export function AccountTab() {
           <p className="text-sm text-gray-800 dark:text-slate-100">
             {isEmailAuth ? 'E-Mail / Passwort' : `OAuth (${provider})`}
           </p>
+        </div>
+
+        <div className="rounded-2xl border border-rose-100 bg-rose-50/70 p-4 dark:border-slate-700 dark:bg-slate-900/70">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-500 dark:text-pink-400">Freundescode</p>
+              <p className="mt-1 text-sm text-gray-600 dark:text-slate-300">Teile diesen Code, damit andere dich in der Sidebar adden koennen.</p>
+            </div>
+            <Users size={16} className="text-pink-500" />
+          </div>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex-1 rounded-2xl bg-white px-4 py-3 text-lg font-bold uppercase tracking-[0.24em] text-gray-800 shadow-sm dark:bg-slate-800 dark:text-slate-100">
+              {profileLoading ? 'Lade...' : friendCode || '----'}
+            </div>
+            <Button type="button" variant="secondary" onClick={handleCopyCode} disabled={profileLoading || !friendCode} className="justify-center">
+              {copySuccess ? <Check size={14} /> : <Copy size={14} />}
+              {copySuccess ? 'Kopiert' : 'Code kopieren'}
+            </Button>
+          </div>
+          <p className="mt-2 text-xs text-gray-500 dark:text-slate-400">Tipp: Sobald euch beide bestaetigt haben, erscheint das Profil in der Freundesliste.</p>
         </div>
 
         {/* Password change (email auth only) */}
@@ -128,7 +194,7 @@ export function AccountTab() {
                   <Button type="submit" disabled={pwLoading}>
                     {pwLoading ? 'Wird geändert...' : 'Speichern'}
                   </Button>
-                  <Button variant="ghost" onClick={() => setShowPasswordForm(false)}>
+                  <Button type="button" variant="ghost" onClick={() => setShowPasswordForm(false)}>
                     Abbrechen
                   </Button>
                 </div>
@@ -161,6 +227,11 @@ export function AccountTab() {
           <p className="text-xs text-gray-400 dark:text-slate-500 mt-1.5">
             Alle Daten werden unwiderruflich gelöscht.
           </p>
+          {deleteError && (
+            <p className="text-xs text-red-500 bg-red-50 dark:bg-red-950/40 rounded-lg px-3 py-2 mt-2">
+              {deleteError}
+            </p>
+          )}
         </div>
       </div>
 
@@ -171,8 +242,9 @@ export function AccountTab() {
           // Delete all user data, then sign out
           const supabase = createClient()
           stopSync()
+          setDeleteError(null)
           // RLS ensures only own data is deleted
-          await Promise.all([
+          const results = await Promise.all([
             supabase.from('quests').delete().eq('user_id', user.id),
             supabase.from('items').delete().eq('user_id', user.id),
             supabase.from('buildings').delete().eq('user_id', user.id),
@@ -184,7 +256,17 @@ export function AccountTab() {
             supabase.from('graph_positions').delete().eq('user_id', user.id),
             supabase.from('profiles').delete().eq('id', user.id),
           ])
+          const failed = results.filter(r => r.error)
+          if (failed.length > 0) {
+            // Don't sign out — the user should see that data is left behind
+            setShowDeleteConfirm(false)
+            setDeleteError(
+              `Löschen unvollständig (${failed.length} Tabelle${failed.length > 1 ? 'n' : ''} fehlgeschlagen). Bitte erneut versuchen.`,
+            )
+            return
+          }
           await supabase.auth.signOut()
+          resetAllStores()
           useAuthStore.getState().setUser(null)
           router.push('/login')
           router.refresh()
