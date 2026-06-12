@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { ItemNode, ItemStatus } from '@/types'
+import type { ItemNode } from '@/types'
 import { mockItems } from '@/data/mockData'
 
 interface ItemStore {

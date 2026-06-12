@@ -173,7 +173,8 @@ function Sparks({ colors, count, dist, sizes }: {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-visible" aria-hidden>
       {Array.from({ length: count }).map((_, i) => {
-        const angle = (i / count) * 360 + Math.random() * (360 / count)
+        // Deterministic golden-angle jitter — render must stay pure (no Math.random)
+        const angle = (i / count) * 360 + ((i * 137.508) % (360 / count))
         const d     = dist + (i % 3) * Math.round(dist * 0.32)
         const size  = i % 4 === 0 ? sizes[0] : i % 3 === 0 ? sizes[1] : sizes[2]
         const delay = (i * 0.045).toFixed(2)
@@ -268,8 +269,15 @@ export function AchievementToast() {
   const currentId   = pendingQueue[0] ?? null
   const achievement = currentId ? ACHIEVEMENTS.find(a => a.id === currentId) : null
 
+  // Reset visibility when the queue empties (render-time adjustment, not an effect)
+  const [prevId, setPrevId] = useState(currentId)
+  if (prevId !== currentId) {
+    setPrevId(currentId)
+    if (!currentId) setVisible(false)
+  }
+
   useEffect(() => {
-    if (!achievement) { setVisible(false); return }
+    if (!achievement) return
 
     const delay = setTimeout(() => {
       const raf = requestAnimationFrame(() => {

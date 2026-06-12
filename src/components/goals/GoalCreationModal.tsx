@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Target, X } from 'lucide-react'
+import { useState } from 'react'
+import { Target } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -20,19 +20,12 @@ interface GoalCreationModalProps {
 export function GoalCreationModal({ open, onClose, node, allNodes }: GoalCreationModalProps) {
   const { addGoalWithSubgoals, isGoal, updateGoalNote, getGoalForNode } = useGoalStore()
 
-  const [note,            setNote]            = useState('')
-  const [selectedSubGoals, setSelectedSubGoals] = useState<Set<string>>(new Set())
-
   const alreadyGoal = node ? isGoal(node.id) : false
   const existingGoal = node ? getGoalForNode(node.id) : undefined
 
-  // Reset state when modal opens
-  useEffect(() => {
-    if (open && node) {
-      setNote(existingGoal?.note ?? '')
-      setSelectedSubGoals(new Set())
-    }
-  }, [open, node, existingGoal])
+  // Parent remounts the modal via key prop on open/node change
+  const [note,            setNote]            = useState(() => existingGoal?.note ?? '')
+  const [selectedSubGoals, setSelectedSubGoals] = useState<Set<string>>(new Set())
 
   if (!node) return null
 

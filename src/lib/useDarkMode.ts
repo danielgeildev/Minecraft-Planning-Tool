@@ -1,26 +1,40 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 
 const STORAGE_KEY = 'atm10-dark-mode'
 
-export function useDarkMode() {
-  // Always start false (matches server). Sync from localStorage after mount to
-  // avoid a SSR/client hydration mismatch. AppShell already applies the `dark`
-  // class to <html> before first paint, so there is no visual flash.
-  const [dark, setDark] = useState(false)
+// Module-level listeners so all hook instances stay in sync within the tab;
+// the 'storage' event covers changes from other tabs.
+let listeners: (() => void)[] = []
 
-  useEffect(() => {
-    setDark(localStorage.getItem(STORAGE_KEY) === 'true')
-  }, [])
+function subscribe(listener: () => void) {
+  listeners.push(listener)
+  window.addEventListener('storage', listener)
+  return () => {
+    listeners = listeners.filter(l => l !== listener)
+    window.removeEventListener('storage', listener)
+  }
+}
+
+function getSnapshot() {
+  return localStorage.getItem(STORAGE_KEY) === 'true'
+}
+
+// Server snapshot is always false; AppShell applies the `dark` class to <html>
+// before first paint, so there is no visual flash.
+function getServerSnapshot() {
+  return false
+}
+
+export function useDarkMode() {
+  const dark = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   const toggle = useCallback(() => {
-    setDark(prev => {
-      const next = !prev
-      localStorage.setItem(STORAGE_KEY, String(next))
-      document.documentElement.classList.toggle('dark', next)
-      return next
-    })
+    const next = !getSnapshot()
+    localStorage.setItem(STORAGE_KEY, String(next))
+    document.documentElement.classList.toggle('dark', next)
+    listeners.forEach(l => l())
   }, [])
 
   return { dark, toggle }

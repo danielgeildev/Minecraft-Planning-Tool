@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { Input, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -29,24 +29,21 @@ const emptyForm = {
 }
 
 export function QuestForm({ open, onClose, onSubmit, initialData, allQuests, allItems }: QuestFormProps) {
-  const [form, setForm] = useState(emptyForm)
-
-  useEffect(() => {
-    if (initialData) {
-      setForm({
-        title:        initialData.title,
-        description:  initialData.description,
-        status:       initialData.status,
-        priority:     initialData.priority,
-        category:     initialData.category,
-        parentId:     initialData.parentId,
-        dependencies: [...initialData.dependencies],
-        notes:        initialData.notes,
-      })
-    } else {
-      setForm(emptyForm)
-    }
-  }, [initialData, open])
+  // Parent remounts the form via key prop on open/edit-target change
+  const [form, setForm] = useState(() =>
+    initialData
+      ? {
+          title:        initialData.title,
+          description:  initialData.description,
+          status:       initialData.status,
+          priority:     initialData.priority,
+          category:     initialData.category,
+          parentId:     initialData.parentId,
+          dependencies: [...initialData.dependencies],
+          notes:        initialData.notes,
+        }
+      : emptyForm
+  )
 
   const toggleDep = (targetId: string) => {
     setForm(p => {

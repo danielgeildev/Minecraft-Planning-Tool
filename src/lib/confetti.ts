@@ -62,8 +62,8 @@ export function triggerConfetti(originX?: number, originY?: number, count = 90) 
     for (let i = 0; i < spikes * 2; i++) {
       const rad   = i % 2 === 0 ? r : inner
       const angle = (i * Math.PI) / spikes
-      i === 0 ? ctx.moveTo(Math.cos(angle) * rad, Math.sin(angle) * rad)
-              : ctx.lineTo(Math.cos(angle) * rad, Math.sin(angle) * rad)
+      if (i === 0) ctx.moveTo(Math.cos(angle) * rad, Math.sin(angle) * rad)
+      else         ctx.lineTo(Math.cos(angle) * rad, Math.sin(angle) * rad)
     }
     ctx.closePath()
     ctx.fill()

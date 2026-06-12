@@ -212,6 +212,7 @@ export default function QuestsPage() {
 
       {/* Goal creation modal */}
       <GoalCreationModal
+        key={goalNode ? `goal-${goalNode.id}` : 'goal-closed'}
         open={goalNode !== null}
         onClose={() => setGoalNode(null)}
         node={goalNode}
@@ -220,6 +221,7 @@ export default function QuestsPage() {
 
       {/* Form modal */}
       <QuestForm
+        key={formOpen ? `form-${editTarget?.id ?? 'new'}` : 'form-closed'}
         open={formOpen}
         onClose={handleFormClose}
         onSubmit={handleSubmit}

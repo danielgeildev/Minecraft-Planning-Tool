@@ -17,7 +17,8 @@ export const useGraphPositionStore = create<GraphPositionState>()(
         set((s) => ({ positions: { ...s.positions, [nodeId]: { x, y } } })),
       clearPosition: (nodeId) =>
         set((s) => {
-          const { [nodeId]: _, ...rest } = s.positions
+          const rest = { ...s.positions }
+          delete rest[nodeId]
           return { positions: rest }
         }),
       clearAll: () => set({ positions: {} }),

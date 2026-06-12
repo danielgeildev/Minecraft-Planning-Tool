@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { Input, Textarea, Select } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
@@ -25,23 +24,20 @@ const emptyForm = {
 }
 
 export function ItemForm({ open, onClose, onSubmit, initialData, allNodes }: ItemFormProps) {
-  const [form, setForm] = useState(emptyForm)
-
-  useEffect(() => {
-    if (initialData) {
-      setForm({
-        name:         initialData.name,
-        mod:          initialData.mod,
-        status:       initialData.status,
-        reason:       initialData.reason,
-        purpose:      initialData.purpose,
-        dependencies: [...initialData.dependencies],
-        notes:        initialData.notes,
-      })
-    } else {
-      setForm(emptyForm)
-    }
-  }, [initialData, open])
+  // Parent remounts the form via key prop on open/edit-target change
+  const [form, setForm] = useState(() =>
+    initialData
+      ? {
+          name:         initialData.name,
+          mod:          initialData.mod,
+          status:       initialData.status,
+          reason:       initialData.reason,
+          purpose:      initialData.purpose,
+          dependencies: [...initialData.dependencies],
+          notes:        initialData.notes,
+        }
+      : emptyForm
+  )
 
   const toggleDep = (targetId: string, defaultType: Dependency['type'] = 'requires') => {
     setForm(p => {
