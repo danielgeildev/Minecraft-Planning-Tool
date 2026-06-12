@@ -182,7 +182,7 @@ export default function DashboardPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">🎯 Aktive Ziele</h2>
-            <Link href="/goals" className="text-xs text-pink-500 hover:text-pink-600">Alle →</Link>
+            <Link href="/spielplan" className="text-xs text-pink-500 hover:text-pink-600">Alle →</Link>
           </div>
           <div className="flex flex-col gap-3">
             {goals.slice(0, 3).map(goal => {

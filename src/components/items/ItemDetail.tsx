@@ -8,6 +8,7 @@ import { getNodeTitle } from '@/types'
 import { getFullDependencyTree } from '@/lib/progression'
 import { useGoalStore } from '@/store/useGoalStore'
 import { RelatedNotes } from '@/components/notes/RelatedNotes'
+import { InventoryControl } from './InventoryControl'
 
 const statusConfig: Record<ItemStatus, { label: string; variant: 'red' | 'amber' | 'green'; emoji: string }> = {
   needed:     { label: 'Gesucht',      variant: 'red',   emoji: '🔍' },
@@ -88,6 +89,15 @@ export function ItemDetail({ item, allNodes, onClose, onEdit, onStatusChange, on
             <Target size={12} />
             {goal ? 'Ist Ziel ✓' : 'Ziel planen…'}
           </button>
+        </div>
+
+        {/* Inventory */}
+        <div className="rounded-xl bg-amber-50 p-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold text-amber-600">📥 Im Lager</p>
+            <p className="text-[11px] text-amber-500/80 mt-0.5">Fließt in die Ressourcen-Planung ein</p>
+          </div>
+          <InventoryControl nodeId={item.id} />
         </div>
 
         {/* Why / For what */}
