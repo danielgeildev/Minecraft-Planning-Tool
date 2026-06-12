@@ -99,13 +99,13 @@ export default function DashboardPage() {
   const authUser        = useAuthStore(s => s.user)
   const hasHydrated     = useHasHydrated()
 
-  // Stable per-page-load fallback so the greeting doesn't flicker between renders.
+  // Stable fallback that rotates daily — render must stay pure (no Math.random).
   const guestName = useMemo(() => {
     const candidates = [
       'Abenteurer', 'Pionier', 'Entdecker', 'Bergbauer',
       'Crafter', 'Diamantsucher', 'Steve', 'Alex',
     ]
-    return candidates[Math.floor(Math.random() * candidates.length)]
+    return candidates[new Date().getDate() % candidates.length]
   }, [])
 
   const greetingName = (() => {
