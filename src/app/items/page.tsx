@@ -283,6 +283,7 @@ export default function ItemsPage() {
 
       {/* Goal creation modal */}
       <GoalCreationModal
+        key={goalNode ? `goal-${goalNode.id}` : 'goal-closed'}
         open={goalNode !== null}
         onClose={() => setGoalNode(null)}
         node={goalNode}
@@ -291,6 +292,7 @@ export default function ItemsPage() {
 
       {/* Form */}
       <ItemForm
+        key={formOpen ? `form-${editTarget?.id ?? 'new'}` : 'form-closed'}
         open={formOpen}
         onClose={handleFormClose}
         onSubmit={handleSubmit}

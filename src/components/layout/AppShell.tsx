@@ -20,8 +20,13 @@ import { useAuthStore }         from '@/store/useAuthStore'
 import { createClient }         from '@/lib/supabase/client'
 import { fetchAndHydrate }     from '@/lib/supabase/fetchAndHydrate'
 import { startSync, stopSync, setHydrating } from '@/lib/supabase/syncEngine'
-import { getLocalDataCounts, migrateLocalDataToSupabase, type MigrationCounts } from '@/lib/supabase/migration'
+import {
+  getLocalDataCounts, migrateLocalDataToSupabase,
+  hasUserModifiedLocalData, captureLocalSnapshot, mergeSnapshotIntoSupabase,
+  type MigrationCounts, type LocalDataSnapshot,
+} from '@/lib/supabase/migration'
 import { MigrationModal }      from '@/components/ui/MigrationModal'
+import { MergeModal }          from '@/components/ui/MergeModal'
 import { SyncErrorToast }      from '@/components/ui/SyncErrorToast'
 import { initXpTracking }       from '@/lib/progression/xpTracker'
 import { getLevelFromXp }       from '@/lib/progression/xp'
@@ -34,6 +39,7 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [migrationCounts, setMigrationCounts] = useState<MigrationCounts | null>(null)
+  const [mergeSnapshot, setMergeSnapshot]     = useState<LocalDataSnapshot | null>(null)
   const pathname = usePathname()
   const isAuthRoute =
     pathname.startsWith('/login') ||
@@ -73,16 +79,25 @@ export function AppShell({ children }: AppShellProps) {
     async function initSync() {
       setHydrating(true)
       try {
+        // Capture local (anonymous) work BEFORE hydration overwrites the stores
+        const localSnapshot = hasUserModifiedLocalData() ? captureLocalSnapshot() : null
+
         const hasSupabaseData = await fetchAndHydrate(userId!)
 
-        // If Supabase is empty but localStorage has data → offer migration
         if (!hasSupabaseData) {
+          // Supabase is empty but localStorage has data → offer migration
           const counts = getLocalDataCounts()
           if (counts) {
             setMigrationCounts(counts)
             setHydrating(false)
             return // Wait for user decision before starting sync
           }
+        } else if (localSnapshot) {
+          // Cloud has data AND this device had user-modified local data →
+          // let the user decide instead of silently discarding the local work
+          setMergeSnapshot(localSnapshot)
+          setHydrating(false)
+          return // Wait for user decision before starting sync
         }
       } catch (err) {
         console.error('[sync] fetch failed', err)
@@ -119,7 +134,7 @@ export function AppShell({ children }: AppShellProps) {
     // 1b. Queue any already-unlocked achievements the user hasn't seen a toast for yet
     useAchievementStore.getState().queueUnseen()
 
-    // 2. Load mock data only on very first run (_dataVersion === 0)
+    // 2. Mark stores as initialized on very first run (_dataVersion === 0)
     useQuestStore.getState().initializeIfNeeded()
     useBuildingStore.getState().initializeIfNeeded()
     useItemStore.getState().initializeIfNeeded()
@@ -180,6 +195,25 @@ export function AppShell({ children }: AppShellProps) {
     if (userId) startSync(userId)
   }
 
+  async function handleMerge() {
+    if (!userId || !mergeSnapshot) return
+    await mergeSnapshotIntoSupabase(userId, mergeSnapshot)
+    // Re-fetch so the stores show the merged result
+    setHydrating(true)
+    try {
+      await fetchAndHydrate(userId)
+    } finally {
+      setHydrating(false)
+    }
+    setMergeSnapshot(null)
+    startSync(userId)
+  }
+
+  function handleDiscardLocal() {
+    setMergeSnapshot(null)
+    if (userId) startSync(userId)
+  }
+
   if (isAuthRoute) {
     return <>{children}</>
   }
@@ -214,6 +248,14 @@ export function AppShell({ children }: AppShellProps) {
           counts={migrationCounts}
           onMigrate={handleMigrate}
           onSkip={handleSkipMigration}
+        />
+      )}
+
+      {mergeSnapshot && (
+        <MergeModal
+          snapshot={mergeSnapshot}
+          onMerge={handleMerge}
+          onDiscard={handleDiscardLocal}
         />
       )}
 

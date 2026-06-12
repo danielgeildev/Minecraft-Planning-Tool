@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { ImagePlus, X, Plus, Search, PackagePlus } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
@@ -62,16 +62,8 @@ export function NoteForm({ open, onClose, onSubmit, initialData, allNodes, allNo
   const fileInputRef                      = useRef<HTMLInputElement>(null)
   const newKeysRef                        = useRef<string[]>([])
 
-  // Reset cleanup state when dialog opens (no setForm — parent uses key prop to remount)
-  useEffect(() => {
-    if (open) {
-      newKeysRef.current = []
-      setImageError(null)
-      setShowInline(false)
-      setInlineName('')
-      setInlineMod('')
-    }
-  }, [open])
+  // No reset-on-open effect needed: the parent remounts this form via key prop
+  // on every open/close, so all state starts fresh.
 
   const processFiles = (files: FileList | null) => {
     if (!files) return

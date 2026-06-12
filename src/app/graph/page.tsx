@@ -17,7 +17,7 @@ import { validateNewRequiresEdge }     from '@/lib/graph/validation'
 import { parseEdgeId, addRequiresDep, removeRequiresDep } from '@/lib/graph/editing'
 import {
   getNodeTitle, isNodeDone,
-  type AnyNode, type QuestStatus, type ItemStatus, type BuildingStatus,
+  type AnyNode,
 } from '@/types'
 import { getNodeState, getBlockedDependencies, getDependencyChain } from '@/lib/progression'
 import { getRequiredNodesForGoal, getNextStepsForGoal, getBlockingNodesForGoal } from '@/lib/planning'
@@ -31,11 +31,6 @@ import { useInventoryStore }     from '@/store/useInventoryStore'
 import { getNextBestAction }     from '@/lib/planning/advanced'
 
 type StatusFilter = 'all' | 'not-completed' | 'done' | 'available' | 'locked'
-
-// Suppress unused import warnings for types only used in JSX narrowing
-type _QuestStatus    = QuestStatus
-type _ItemStatus     = ItemStatus
-type _BuildingStatus = BuildingStatus
 
 export default function GraphPage() {
   const quests             = useQuestStore(s => s.quests)

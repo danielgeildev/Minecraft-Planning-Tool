@@ -1,5 +1,7 @@
 'use client'
 
+import DOMPurify from 'dompurify'
+
 interface RichTextDisplayProps {
   content:   string
   className?: string
@@ -14,10 +16,12 @@ export function RichTextDisplay({ content, className = '', clamp }: RichTextDisp
   const isHtml = /^<[a-z][\s\S]*>/i.test(content.trim())
 
   if (isHtml) {
+    // Sanitize: content is user-generated and stored in the DB — without this,
+    // tampered rows (or future note-sharing) would allow stored XSS
     return (
       <div
         className={`rich-content text-xs ${clamp ? 'line-clamp-3' : ''} ${className}`}
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
       />
     )
   }

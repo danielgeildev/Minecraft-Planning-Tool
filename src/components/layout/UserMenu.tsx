@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { LogOut, Camera, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/useAuthStore'
+import { resetAllStores } from '@/store/resetAllStores'
 import { stopSync } from '@/lib/supabase/syncEngine'
 
 export function ProfileAvatar() {
@@ -26,6 +27,9 @@ export function ProfileAvatar() {
     stopSync()
     const supabase = createClient()
     await supabase.auth.signOut()
+    // Wipe stores + localStorage so the next user on this device
+    // doesn't see this account's data
+    resetAllStores()
     useAuthStore.getState().setUser(null)
     setMenuOpen(false)
     router.push('/login')
@@ -57,18 +61,29 @@ export function ProfileAvatar() {
       .from('avatars')
       .getPublicUrl(path)
 
+    const cacheBustedUrl = `${publicUrl}?t=${Date.now()}`
+
     // Update user metadata with avatar URL
     const { error: updateError } = await supabase.auth.updateUser({
-      data: { avatar_url: `${publicUrl}?t=${Date.now()}` },
+      data: { avatar_url: cacheBustedUrl },
     })
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: cacheBustedUrl, updated_at: new Date().toISOString() })
+      .eq('id', user.id)
 
     if (updateError) {
       console.error('[avatar] metadata update failed', updateError)
-    } else {
-      // Refresh auth state to pick up new avatar
-      const { data: { user: refreshed } } = await supabase.auth.getUser()
-      if (refreshed) useAuthStore.getState().setUser(refreshed)
     }
+
+    if (profileError) {
+      console.error('[avatar] profile update failed', profileError)
+    }
+
+    // Refresh auth state to pick up new avatar
+    const { data: { user: refreshed } } = await supabase.auth.getUser()
+    if (refreshed) useAuthStore.getState().setUser(refreshed)
 
     setUploading(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -149,7 +164,7 @@ export function ProfileAvatar() {
               className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-slate-700 transition-colors"
             >
               <span className="text-sm">⚙️</span>
-              Account-Einstellungen
+              Einstellungen
             </Link>
 
             {/* Logout */}

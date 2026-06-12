@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async redirects() {
+    return [
+      // Goals page was merged into Spielplan; Timeline became a widget on Progress
+      { source: "/goals", destination: "/spielplan", permanent: false },
+      { source: "/timeline", destination: "/progress", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

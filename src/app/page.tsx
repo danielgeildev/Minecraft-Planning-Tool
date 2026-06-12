@@ -99,13 +99,13 @@ export default function DashboardPage() {
   const authUser        = useAuthStore(s => s.user)
   const hasHydrated     = useHasHydrated()
 
-  // Stable per-page-load fallback so the greeting doesn't flicker between renders.
+  // Stable fallback that rotates daily — render must stay pure (no Math.random).
   const guestName = useMemo(() => {
     const candidates = [
       'Abenteurer', 'Pionier', 'Entdecker', 'Bergbauer',
       'Crafter', 'Diamantsucher', 'Steve', 'Alex',
     ]
-    return candidates[Math.floor(Math.random() * candidates.length)]
+    return candidates[new Date().getDate() % candidates.length]
   }, [])
 
   const greetingName = (() => {
@@ -209,7 +209,7 @@ export default function DashboardPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">🎯 Aktive Ziele</h2>
-            <Link href="/goals" className="text-xs text-pink-500 hover:text-pink-600">Alle →</Link>
+            <Link href="/spielplan" className="text-xs text-pink-500 hover:text-pink-600">Alle →</Link>
           </div>
           <div className="flex flex-col gap-3">
             {goals.slice(0, 3).map(goal => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import { useSyncStore } from '@/store/useSyncStore'
 
@@ -10,9 +10,12 @@ export function SyncErrorToast() {
   const [dismissed, setDismissed] = useState(false)
 
   // Reset dismissal when status changes away from error
-  useEffect(() => {
+  // (render-time adjustment instead of an effect — see react.dev/learn/you-might-not-need-an-effect)
+  const [prevStatus, setPrevStatus] = useState(status)
+  if (prevStatus !== status) {
+    setPrevStatus(status)
     if (status !== 'error') setDismissed(false)
-  }, [status])
+  }
 
   if (status !== 'error' || dismissed || !error) return null
 

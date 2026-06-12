@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { QuestNode, QuestStatus, Dependency } from '@/types'
+import type { QuestNode } from '@/types'
 
 interface QuestStore {
   quests: QuestNode[]

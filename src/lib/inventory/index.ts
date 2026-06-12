@@ -1,10 +1,8 @@
 /**
  * Inventory-aware resource calculations — pure functions, no UI, no store imports.
  *
- * NOTE: Inventory UI not yet built.
- * To activate: replace calculateTotalResources() calls in goals/page.tsx with
- * calculateRemainingResources() from this file. Then add an inventory input section
- * to items/page.tsx or a dedicated /inventory page so the user can enter quantities.
+ * UI surfaces: InventoryControl (stepper) in ItemDetail and in the resource
+ * list on the Spielplan page, which uses calculateRemainingResources().
  */
 
 import type { AnyNode, InventoryItem } from '@/types'

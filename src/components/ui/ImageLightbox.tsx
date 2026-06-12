@@ -348,10 +348,9 @@ export function ImageLightbox({
     })
   }
 
-  /* ── cursor ──────────────────────────────────────────────── */
-  const cursor = isZoomed
-    ? (mouseState.current.dragging ? 'cursor-grabbing' : 'cursor-grab')
-    : 'cursor-zoom-in'
+  /* ── cursor (CSS active: variant instead of reading the drag
+        ref during render, which React forbids) ───────────────── */
+  const cursor = isZoomed ? 'cursor-grab active:cursor-grabbing' : 'cursor-zoom-in'
 
   /* ── render ──────────────────────────────────────────────── */
   return (

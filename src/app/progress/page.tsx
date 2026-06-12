@@ -14,6 +14,7 @@ import {
 } from '@/lib/progression/xp'
 import { XP_LABELS } from '@/lib/progression/xp'
 import { resolveMobColors, useIsDark } from '@/lib/progression/useMobColors'
+import { RecentActivity } from '@/components/progression/RecentActivity'
 
 // ─── Mob Level Card ─────────────────────────────────────────────────────────
 
@@ -391,6 +392,14 @@ export default function ProgressPage() {
                 <p className="text-[10px] text-gray-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">XP / Aktion</p>
               </div>
             </div>
+          </div>
+
+          {/* Recent activity (former Timeline page) */}
+          <div className="mt-6">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+              <span>📅</span> Zuletzt erledigt
+            </h2>
+            <RecentActivity />
           </div>
         </div>
       </div>

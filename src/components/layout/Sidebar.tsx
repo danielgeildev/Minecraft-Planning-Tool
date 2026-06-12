@@ -1,27 +1,25 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { X } from 'lucide-react'
 import { useQuestStore }    from '@/store/useQuestStore'
 import { useNoteStore }     from '@/store/useNoteStore'
 import { useBuildingStore } from '@/store/useBuildingStore'
-import { useAuthStore }    from '@/store/useAuthStore'
 import { ProfileAvatar }   from './UserMenu'
 import { SyncIndicator }   from '@/components/ui/SyncIndicator'
 
 const navItems = [
-  { href: '/',           label: 'Dashboard',      emoji: '🏠' },
-  { href: '/progress',   label: 'Fortschritt',    emoji: '✨' },
-  { href: '/spielplan',  label: 'Spielplan',      emoji: '⚡' },
-  { href: '/goals',      label: 'Ziele',          emoji: '🎯' },
-  { href: '/quests',     label: 'Quests',         emoji: '📋' },
-  { href: '/buildings',  label: 'Gebäude',        emoji: '🏗️' },
-  { href: '/items',      label: 'Items',          emoji: '📦' },
-  { href: '/graph',      label: 'Graph',          emoji: '🗺️' },
-  { href: '/notes',      label: 'Notizen',        emoji: '📝' },
-  { href: '/timeline',   label: 'Timeline',       emoji: '📅' },
-  { href: '/settings',   label: 'Einstellungen',  emoji: '⚙️' },
+  { href: '/',           label: 'Dashboard',         emoji: '🏠' },
+  { href: '/progress',   label: 'Fortschritt',       emoji: '✨' },
+  { href: '/spielplan',  label: 'Ziele & Spielplan', emoji: '🎯' },
+  { href: '/quests',     label: 'Quests',            emoji: '📋' },
+  { href: '/buildings',  label: 'Gebäude',           emoji: '🏗️' },
+  { href: '/items',      label: 'Items',             emoji: '📦' },
+  { href: '/graph',      label: 'Graph',             emoji: '🗺️' },
+  { href: '/notes',      label: 'Notizen',           emoji: '📝' },
+  { href: '/friends',    label: 'Freunde',           emoji: '👥' },
 ]
 
 interface SidebarProps {
@@ -31,8 +29,15 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const previousPathname = useRef(pathname)
 
-  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  useEffect(() => {
+    if (pathname !== previousPathname.current && open) {
+      onClose()
+    }
+    previousPathname.current = pathname
+  }, [open, onClose, pathname])
+
   const activeQuests    = useQuestStore(s => s.quests.filter(q => q.status === 'in-progress').length)
   const activeBuildings = useBuildingStore(s => s.buildings.filter(b => b.status === 'in-progress').length)
   const noteCount       = useNoteStore(s => s.notes.length)
@@ -80,7 +85,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
+        <nav className="px-3 py-4 space-y-0.5">
           {navItems.map(({ href, label, emoji }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
             return (
@@ -114,16 +119,18 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           })}
         </nav>
 
+        <div className="flex-1" />
+
         {/* Footer */}
         <div className="px-5 py-4 border-t border-rose-50 dark:border-slate-700 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <ProfileAvatar />
-            <div className="rounded-xl bg-rose-50 dark:bg-slate-800 p-3 flex-1 ml-3">
-              <p className="text-xs font-medium text-rose-500 dark:text-rose-400">🌸 Alina&apos;s Quest Tracker</p>
-              <p className="text-xs text-rose-400 dark:text-slate-500 mt-0.5">Viel Spaß beim spielen!</p>
+            <div className="ml-3 rounded-xl bg-rose-50 dark:bg-slate-800 px-3 py-2">
+              <p className="text-xs font-medium text-rose-500 dark:text-rose-400">👤 User-Profil</p>
+              <p className="text-xs text-rose-400 dark:text-slate-500 mt-0.5">Avatar, Einstellungen und Logout</p>
             </div>
           </div>
-          {isAuthenticated && <SyncIndicator />}
+          <SyncIndicator />
         </div>
       </aside>
     </>

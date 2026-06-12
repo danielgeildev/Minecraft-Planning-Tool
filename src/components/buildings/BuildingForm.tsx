@@ -73,7 +73,6 @@ export function BuildingForm({ open, onClose, onSubmit, initialData }: BuildingF
       }
       setNewReq('')
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData, open])
 
   // ── Freitext-Anforderungen ─────────────────────────────────────────────────
